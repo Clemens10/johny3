@@ -1,10 +1,11 @@
 import { defineConfig, mergeConfig } from 'vite'
 import { defineConfig as defineVitestConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
 const viteConfig = defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
