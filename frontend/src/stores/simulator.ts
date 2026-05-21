@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { type SimulatorState } from '@/simulator/types'
+import { type SimulatorState, AdvancedFeature } from '@/simulator/types'
 import {
   createInitialState,
   microstep as doMicrostep,
   step as doStep,
 } from '@/simulator/simulator'
+
+const ALL_FEATURES = Object.values(AdvancedFeature)
 
 /**
  * Zentraler Simulator-Store.
@@ -27,10 +29,18 @@ export const useSimulatorStore = defineStore('simulator', () => {
 
   // --- Computed ---
   const isHalted = computed(() => state.value.halted)
-  const pc = computed(() => state.value.pc)
-  const acc = computed(() => state.value.acc)
-  const mc = computed(() => state.value.mc)
-  const ir = computed(() => state.value.ir)
+  const pc       = computed(() => state.value.pc)
+  const acc      = computed(() => state.value.acc)
+  const mc       = computed(() => state.value.mc)
+  const ir       = computed(() => state.value.ir)
+
+  /** 'classic' | 'advanced' | 'custom' — für den Mode-Badge. */
+  const mode = computed((): 'classic' | 'advanced' | 'custom' => {
+    const n = state.value.activeFeatures.size
+    if (n === 0) return 'classic'
+    if (n === ALL_FEATURES.length) return 'advanced'
+    return 'custom'
+  })
 
   // --- Private Hilfsfunktion ---
   function clearTimer() {
@@ -115,12 +125,31 @@ export const useSimulatorStore = defineStore('simulator', () => {
     state.value = { ...state.value, ram: newRam }
   }
 
+  /** Schaltet ein einzelnes Advanced-Feature ein oder aus. */
+  function toggleFeature(feature: typeof AdvancedFeature[keyof typeof AdvancedFeature]) {
+    const features = new Set(state.value.activeFeatures)
+    if (features.has(feature)) features.delete(feature)
+    else features.add(feature)
+    state.value = { ...state.value, activeFeatures: features }
+  }
+
+  /** Aktiviert alle Advanced-Features (Advanced-Modus). */
+  function enableAllFeatures() {
+    state.value = { ...state.value, activeFeatures: new Set(ALL_FEATURES) }
+  }
+
+  /** Deaktiviert alle Advanced-Features (Classic-Modus). */
+  function disableAllFeatures() {
+    state.value = { ...state.value, activeFeatures: new Set() }
+  }
+
   return {
     // State (readonly für Komponenten)
     state,
     isRunning,
     isHalted,
     speed,
+    mode,
     pc,
     acc,
     mc,
@@ -134,5 +163,8 @@ export const useSimulatorStore = defineStore('simulator', () => {
     reset,
     loadRam,
     setRamCell,
+    toggleFeature,
+    enableAllFeatures,
+    disableAllFeatures,
   }
 })
