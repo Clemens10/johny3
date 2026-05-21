@@ -1,13 +1,30 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
+import { useSimulatorStore } from '@/stores/simulator'
+import { assemble } from '@/simulator/assembler'
 import Toolbar from '@/components/Toolbar.vue'
 import EditorPane from '@/components/EditorPane.vue'
 import RamTable from '@/components/RamTable.vue'
 import BusVisualization from '@/components/BusVisualization.vue'
 
+const store = useSimulatorStore()
 const editorRef = ref<InstanceType<typeof EditorPane>>()
 const bottomTab = ref<'ram' | 'microcode'>('ram')
+
+// ─── Assembler: bei jeder Editor-Änderung (debounced 400 ms) ─────────────────
+let assembleTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleEditorChange(src: string) {
+  if (assembleTimer !== null) clearTimeout(assembleTimer)
+  assembleTimer = setTimeout(() => {
+    const result = assemble(src)
+    editorRef.value?.setErrors(result.errors)
+    if (result.errors.length === 0) {
+      store.updateRam(result.ram)
+    }
+  }, 400)
+}
 
 // ─── Datei-Operationen (werden von Toolbar, Editor-Kürzel und globalem Handler geteilt) ──
 // Implementierung folgt in Schritt 15 (Datei-I/O).
@@ -52,7 +69,7 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
           @save="handleSave"
           @new="handleNew"
           @open="handleOpen"
-          @change="(_src) => { /* TODO Schritt 14: Assembler */ }"
+          @change="handleEditorChange"
         />
       </div>
 

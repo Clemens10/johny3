@@ -2,6 +2,7 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as monaco from 'monaco-editor'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
+import type { AssemblerError } from '@/simulator/assembler'
 
 // ─── Monaco Worker-Konfiguration ──────────────────────────────────────────
 // Muss einmalig gesetzt werden, bevor der Editor instanziiert wird.
@@ -134,7 +135,21 @@ function focus() {
   editor?.focus()
 }
 
-defineExpose({ setContent, getContent, focus })
+/** Zeigt Assembler-Fehler als rote Squiggles im Editor an. */
+function setErrors(errs: AssemblerError[]) {
+  const model = editor?.getModel()
+  if (!model) return
+  monaco.editor.setModelMarkers(model, 'assembler', errs.map(e => ({
+    startLineNumber: e.line,
+    endLineNumber:   e.line,
+    startColumn:     1,
+    endColumn:       Number.MAX_SAFE_INTEGER,
+    message:         e.message,
+    severity:        monaco.MarkerSeverity.Error,
+  })))
+}
+
+defineExpose({ setContent, getContent, focus, setErrors })
 </script>
 
 <template>

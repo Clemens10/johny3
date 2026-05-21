@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { type SimulatorState, AdvancedFeature } from '@/simulator/types'
+import { type SimulatorState, AdvancedFeature, RAM_SIZE } from '@/simulator/types'
 import {
   createInitialState,
   microstep as doMicrostep,
@@ -117,6 +117,15 @@ export const useSimulatorStore = defineStore('simulator', () => {
   }
 
   /**
+   * Aktualisiert den RAM-Inhalt ohne Register zurückzusetzen.
+   * Wird vom Assembler bei jeder Editor-Änderung aufgerufen.
+   */
+  function updateRam(ram: number[]) {
+    const padded = Array.from({ length: RAM_SIZE }, (_, i) => (ram[i] ?? 0) & 0xFFFF)
+    state.value = { ...state.value, ram: padded }
+  }
+
+  /**
    * Setzt eine einzelne RAM-Zelle (z. B. bei direkter Tabellenbearbeitung).
    */
   function setRamCell(address: number, value: number) {
@@ -162,6 +171,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     toggleRun,
     reset,
     loadRam,
+    updateRam,
     setRamCell,
     toggleFeature,
     enableAllFeatures,
