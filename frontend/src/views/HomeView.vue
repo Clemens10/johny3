@@ -17,7 +17,7 @@ function handleNew() {
 }
 
 function handleSave() {
-  // TODO Schritt 15: .johny-Datei herunterladen
+  // TODO Schritt 15: .johnny-Datei herunterladen
   const src = editorRef.value?.getContent() ?? ''
   console.log('Speichern:', src.slice(0, 50) + '…')
 }

@@ -5,18 +5,18 @@ import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 
 // ─── Monaco Worker-Konfiguration ──────────────────────────────────────────
 // Muss einmalig gesetzt werden, bevor der Editor instanziiert wird.
-// Für johny3 brauchen wir nur den Editor-Worker (kein TS/JSON/HTML-Worker).
+// Für johnny3 brauchen wir nur den Editor-Worker (kein TS/JSON/HTML-Worker).
 ;(globalThis as any).MonacoEnvironment = {
   getWorker: () => new EditorWorker(),
 }
 
-// ─── Johny-3-Assembler-Sprache registrieren ───────────────────────────────
-const LANG_ID = 'johny3'
+// ─── Johnny-3-Assembler-Sprache registrieren ───────────────────────────────
+const LANG_ID = 'johnny3'
 
 function ensureLanguageRegistered() {
   if (monaco.languages.getLanguages().some(l => l.id === LANG_ID)) return
 
-  monaco.languages.register({ id: LANG_ID, extensions: ['.johny', '.asm'] })
+  monaco.languages.register({ id: LANG_ID, extensions: ['.johnny', '.asm'] })
 
   // Monarch-Tokenizer: Semicolon-Kommentare, Labels, Mnemonics, Zahlen
   monaco.languages.setMonarchTokensProvider(LANG_ID, {
@@ -37,7 +37,7 @@ function ensureLanguageRegistered() {
   })
 
   // Farb-Theme passend zum App-Design (gray-900 Hintergrund)
-  monaco.editor.defineTheme('johny3-dark', {
+  monaco.editor.defineTheme('johnny3-dark', {
     base: 'vs-dark',
     inherit: true,
     rules: [
@@ -77,7 +77,7 @@ onMounted(() => {
   editor = monaco.editor.create(containerRef.value, {
     value: '',               // Leer starten (kein Default-Programm)
     language: LANG_ID,
-    theme: 'johny3-dark',
+    theme: 'johnny3-dark',
     fontSize: 14,
     fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
     lineNumbers: 'on',

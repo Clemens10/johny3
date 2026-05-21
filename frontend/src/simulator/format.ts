@@ -25,7 +25,7 @@ export function decode(word: Word): { opcode: number; operand: number } {
 }
 
 /**
- * Formatiert ein Wort im Johny-Dezimalformat "OO.OOO".
+ * Formatiert ein Wort im Johnny-Dezimalformat "OO.OOO".
  * Entspricht der Originalanzeige (Opcode zweistellig, Operand dreistellig).
  */
 export function formatDecimal(word: Word): string {

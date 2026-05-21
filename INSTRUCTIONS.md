@@ -1,4 +1,4 @@
-# Phase 3 — Claude-Code-Prompt für Johny 3
+# Phase 3 — Claude-Code-Prompt für Johnny 3
 
 > Dieser Prompt ist eigenständig und vollständig. Du brauchst keine
 > weiteren Dokumente daneben — der Prompt fasst alle relevanten
@@ -11,7 +11,7 @@
 
 ---
 
-# Projekt: Johny 3 — Modernisierter Modellrechner
+# Projekt: Johnny 3 — Modernisierter Modellrechner
 
 ## 1. Hintergrund und Zielsetzung
 
@@ -382,11 +382,11 @@ Beim Aufnehmen neuer Mikrocode-Befehle:
 - 200 Zeilen Steuersignal-Codes (Zahlen 0–19)
 - Danach Mnemonics-Liste, eine pro Zeile, beginnend mit `FETCH`
 
-### 6.2 Neues Format `.johny` (JSON)
+### 6.2 Neues Format `.johnny` (JSON)
 
 ```json
 {
-  "format": "johny",
+  "format": "johnny",
   "version": 1,
   "mode": "classic",
   "advancedFeatures": [],
@@ -433,7 +433,7 @@ CREATE TABLE workspaces (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT NOT NULL,
   name VARCHAR(100) NOT NULL,
-  data JSON NOT NULL,                         -- komplettes .johny-Format
+  data JSON NOT NULL,                         -- komplettes .johnny-Format
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -536,7 +536,7 @@ der Auftraggeber kann sie für sein Hosting anpassen.
 ## 9. Projektstruktur
 
 ```
-johny3/
+johnny3/
 ├── README.md
 ├── LICENSE                              # MIT
 ├── docker-compose.yml                   # Lokale Entwicklung mit MySQL
@@ -575,7 +575,7 @@ johny3/
 │   │   ├── io/
 │   │   │   ├── ramFile.ts
 │   │   │   ├── mcFile.ts
-│   │   │   └── johnyFile.ts
+│   │   │   └── johnnyFile.ts
 │   │   ├── router/index.ts
 │   │   ├── App.vue
 │   │   └── main.ts
@@ -589,8 +589,8 @@ johny3/
 ├── backend/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/johny3/
-│   │   │   │   ├── Johny3Application.java
+│   │   │   ├── java/com/johnny3/
+│   │   │   │   ├── Johnny3Application.java
 │   │   │   │   ├── auth/
 │   │   │   │   │   ├── AuthController.java
 │   │   │   │   │   ├── JwtService.java
@@ -632,7 +632,7 @@ In `deploy/README.md` zu dokumentieren:
 3. **Schritte**:
    - MySQL installieren, Datenbank + User anlegen
    - Backend bauen (`mvn package`), als systemd-Service einrichten
-   - Frontend bauen (`npm run build`), nach `/var/www/johny3`
+   - Frontend bauen (`npm run build`), nach `/var/www/johnny3`
    - Caddyfile mit automatischem HTTPS
 4. **Google OAuth einrichten**:
    - In Google Cloud Console Projekt anlegen
@@ -642,12 +642,12 @@ In `deploy/README.md` zu dokumentieren:
 
 Beispiel-Caddyfile:
 ```
-johny3.example.de {
+johnny3.example.de {
     handle /api/* {
         reverse_proxy localhost:8080
     }
     handle {
-        root * /var/www/johny3
+        root * /var/www/johnny3
         try_files {path} /index.html
         file_server
     }
@@ -676,7 +676,7 @@ testbar ist, bevor der nächste beginnt:
 12. Tastatur-Shortcuts
 13. Editor-Komponente mit Monaco
 14. Assembler (Editor → RAM)
-15. Datei-I/O: `.ram`/`.mc`/`.johny` Im- und Export
+15. Datei-I/O: `.ram`/`.mc`/`.johnny` Im- und Export
 
 ### Sprint 3: Komfort-Features
 16. Inspector-Hover

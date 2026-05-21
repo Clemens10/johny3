@@ -124,7 +124,7 @@ function cancelEdit() {
               {{ decode(store.state.ram[addr] ?? 0).operand }}
             </td>
 
-            <!-- Note (noch leer — kommt mit .johny-Format) -->
+            <!-- Note (noch leer — kommt mit .johnny-Format) -->
             <td class="px-3 py-0.5 text-gray-500 text-xs italic">
               <span v-if="store.state.pc === addr">← PC</span>
             </td>

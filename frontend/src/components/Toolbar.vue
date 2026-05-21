@@ -17,7 +17,7 @@ const emit = defineEmits<{
   <header class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 border-b border-gray-700 text-sm shrink-0 flex-wrap">
 
     <!-- Logo -->
-    <span class="font-bold text-blue-400 mr-1 text-base select-none">Johny 3</span>
+    <span class="font-bold text-blue-400 mr-1 text-base select-none">Johnny 3</span>
 
     <span class="text-gray-600 mx-0.5">│</span>
 
