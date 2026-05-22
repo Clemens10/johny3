@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { type SimulatorState, AdvancedFeature, RAM_SIZE } from '@/simulator/types'
+import { type SimulatorState, type Signal, AdvancedFeature, RAM_SIZE, MICROCODE_SIZE } from '@/simulator/types'
 import {
   createInitialState,
   microstep as doMicrostep,
@@ -126,6 +126,36 @@ export const useSimulatorStore = defineStore('simulator', () => {
   }
 
   /**
+   * Lädt neuen Mikrocode (z. B. aus einer .mc-Datei), RAM bleibt erhalten,
+   * Register werden zurückgesetzt.
+   */
+  function loadMicrocode(microcode: number[]) {
+    stopRun()
+    const padded = Array.from({ length: MICROCODE_SIZE }, (_, i) => microcode[i] ?? 0) as Signal[]
+    state.value = { ...createInitialState(state.value.ram), microcode: padded }
+  }
+
+  /**
+   * Lädt einen vollständigen Workspace (z. B. aus einer .johnny-Datei):
+   * RAM, Mikrocode und Advanced-Features. Register werden zurückgesetzt.
+   */
+  function loadWorkspace(opts: {
+    ram?: number[]
+    microcode?: number[]
+    features?: AdvancedFeature[]
+  }) {
+    stopRun()
+    const base = createInitialState(opts.ram)
+    state.value = {
+      ...base,
+      microcode: opts.microcode
+        ? (Array.from({ length: MICROCODE_SIZE }, (_, i) => opts.microcode![i] ?? 0) as Signal[])
+        : base.microcode,
+      activeFeatures: opts.features ? new Set(opts.features) : base.activeFeatures,
+    }
+  }
+
+  /**
    * Setzt eine einzelne RAM-Zelle (z. B. bei direkter Tabellenbearbeitung).
    */
   function setRamCell(address: number, value: number) {
@@ -172,6 +202,8 @@ export const useSimulatorStore = defineStore('simulator', () => {
     reset,
     loadRam,
     updateRam,
+    loadMicrocode,
+    loadWorkspace,
     setRamCell,
     toggleFeature,
     enableAllFeatures,

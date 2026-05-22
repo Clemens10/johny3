@@ -1,4 +1,4 @@
-import { type SimulatorState, type Signal, type Word, RAM_SIZE, MICROCODE_SIZE } from './types'
+import { type SimulatorState, type Signal, type Word, RAM_SIZE } from './types'
 import { applySignal } from './signals'
 import { DEFAULT_MICROCODE } from './microcode'
 
