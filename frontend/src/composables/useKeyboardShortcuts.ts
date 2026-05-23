@@ -59,6 +59,14 @@ export function useKeyboardShortcuts(callbacks: ShortcutCallbacks = {}) {
           e.preventDefault()
           callbacks.onOpen?.()
           return
+        case 'z':
+          // Undo wirkt nur im Recorder — sonst nicht abfangen, damit ein
+          // späterer System-Undo (z. B. RAM-Tabellen-Verlauf) nicht blockiert.
+          if (store.isRecording) {
+            e.preventDefault()
+            store.undoRecord()
+          }
+          return
       }
     }
   }

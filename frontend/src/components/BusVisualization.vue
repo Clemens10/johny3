@@ -48,6 +48,27 @@ function signalName(code: number | null): string {
   if (code === null) return '—'
   return SIGNAL_NAMES[code] ?? `sig${code}`
 }
+
+/**
+ * Gruppierte Signal-Palette für den Recorder. Reihenfolge spiegelt grob
+ * Section 3.4 der INSTRUCTIONS wider (Transfer / ALU / Steuerung / Advanced).
+ */
+const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
+  { title: 'Transfer', signals: [
+    Signal.PC_AB, Signal.INS_AB, Signal.RAM_DB, Signal.DB_INS,
+    Signal.DB_RAM, Signal.ACC_DB, Signal.DB_ACC, Signal.INS_PC, Signal.INS_MC,
+  ]},
+  { title: 'ALU',      signals: [
+    Signal.PLUS, Signal.MINUS, Signal.ACC_ZERO, Signal.ACC_INC, Signal.ACC_DEC,
+  ]},
+  { title: 'Steuern',  signals: [
+    Signal.PC_INC, Signal.MC_ZERO, Signal.ZERO_TEST, Signal.ZERO_SKIP, Signal.STOP, Signal.NOP,
+  ]},
+  { title: 'Advanced', signals: [
+    Signal.MUL, Signal.PC_DEC, Signal.GT_SKIP, Signal.LEQ_SKIP,
+    Signal.AND, Signal.OR, Signal.NOT, Signal.SHL, Signal.SHR,
+  ]},
+]
 </script>
 
 <template>
@@ -179,6 +200,35 @@ function signalName(code: number | null): string {
       <span class="text-xs">↔</span>
       <span class="text-white font-bold">{{ db }}</span>
       <span class="text-xs text-gray-400">({{ formatDecimal(db) }} / {{ formatHex(db) }})</span>
+    </div>
+
+    <!-- ─── Signal-Palette (nur im Recorder-Modus klickbar) ───────────────── -->
+    <div
+      v-if="store.isRecording"
+      class="rounded border border-yellow-700 bg-yellow-950/40 p-2 mt-1"
+    >
+      <div class="text-xs text-yellow-300 mb-1 font-semibold">
+        ● Aufnahme — klicke ein Signal, um es aufzunehmen:
+      </div>
+      <div
+        v-for="group in SIGNAL_GROUPS"
+        :key="group.title"
+        class="flex items-baseline gap-2 mb-1 last:mb-0"
+      >
+        <span class="text-gray-500 text-xs w-16 shrink-0">{{ group.title }}</span>
+        <div class="flex flex-wrap gap-1">
+          <button
+            v-for="sig in group.signals"
+            :key="sig"
+            class="px-1.5 py-0.5 rounded bg-gray-800 text-yellow-300 text-xs border border-gray-600
+                   hover:bg-yellow-800 hover:text-yellow-100 hover:border-yellow-500 transition-colors"
+            :title="`Code ${sig} — ${signalName(sig)}`"
+            @click="store.recordSignal(sig)"
+          >
+            {{ signalName(sig) }}
+          </button>
+        </div>
+      </div>
     </div>
 
   </div>

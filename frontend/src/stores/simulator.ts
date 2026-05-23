@@ -3,6 +3,12 @@ import { ref, computed } from 'vue'
 import { type SimulatorState, type Signal, AdvancedFeature, RAM_SIZE, MICROCODE_SIZE } from '@/simulator/types'
 import { createInitialState, microstep as doMicrostep } from '@/simulator/simulator'
 import { signalName } from '@/simulator/format'
+import {
+  appendSignal as recAppend,
+  undoLastSignal as recUndo,
+  validateRecording,
+  applyRecording,
+} from '@/simulator/recorder'
 
 /** Ein Schnappschuss der Register vor/nach einem Mikroschritt — für den Trace. */
 interface TraceSnapshot {
@@ -51,6 +57,19 @@ export const useSimulatorStore = defineStore('simulator', () => {
   /** Mikrocode-Trace: jüngste Einträge hinten. Wird vom Trace-Panel angezeigt. */
   const trace = ref<TraceEntry[]>([])
   let traceCounter = 0
+
+  // --- Recorder-State (Schritt 18) ---
+  /** Aufnahme-Modus aktiv? Toolbar-Toggle + Banner-Sichtbarkeit. */
+  const isRecording = ref(false)
+  /** Mnemonic für den neuen Befehl (z. B. "MYCMD"). */
+  const recordingMnemonic = ref('')
+  /**
+   * Einsprungadresse im Mikrocode-Speicher. Default 110 (erster freier Slot
+   * hinter den Default-Befehlen 0–105). Im Recorder-Banner editierbar.
+   */
+  const recordingEntry = ref(110)
+  /** Bisher aufgenommene Signale (chronologisch). */
+  const recordingSignals = ref<Signal[]>([])
 
   // --- Computed ---
   const isHalted = computed(() => state.value.halted)
@@ -224,6 +243,67 @@ export const useSimulatorStore = defineStore('simulator', () => {
     state.value = { ...state.value, ram: newRam }
   }
 
+  /**
+   * Setzt eine einzelne Mikrocode-Zelle (z. B. via Dropdown in der MicrocodeTable).
+   * Auch außerhalb des Recorder-Modus erlaubt (siehe INSTRUCTIONS Sec. 5.x).
+   */
+  function setMicrocodeCell(address: number, signal: Signal) {
+    if (address < 0 || address >= MICROCODE_SIZE) return
+    const mc = [...state.value.microcode]
+    mc[address] = signal
+    state.value = { ...state.value, microcode: mc as Signal[] }
+  }
+
+  // --- Recorder-Aktionen (Schritt 18) ---
+
+  /** Aktiviert den Aufnahme-Modus und leert den Buffer. */
+  function startRecording() {
+    isRecording.value = true
+    recordingSignals.value = []
+  }
+
+  /** Bricht die Aufnahme ohne Übernahme ab. */
+  function cancelRecording() {
+    isRecording.value = false
+    recordingSignals.value = []
+  }
+
+  /** Hängt ein Signal an den Aufnahme-Buffer. No-op außerhalb Recorder-Modus. */
+  function recordSignal(signal: Signal) {
+    if (!isRecording.value) return
+    recordingSignals.value = recAppend(recordingSignals.value, signal)
+  }
+
+  /** Entfernt das zuletzt aufgenommene Signal (Strg+Z im Recorder). */
+  function undoRecord() {
+    if (!isRecording.value) return
+    recordingSignals.value = recUndo(recordingSignals.value)
+  }
+
+  /**
+   * Schreibt die aufgenommene Sequenz in den Mikrocode-Speicher und verlässt
+   * den Recorder-Modus. Gibt mögliche Warnungen zurück (z. B. fehlendes mc:=0
+   * oder Abschneiden am Speicher-Ende).
+   *
+   * Mit `force=false` (Default) wird bei Warnungen NICHT gespeichert — die
+   * UI soll die Warnungen anzeigen und erst nach Bestätigung mit force=true
+   * erneut aufrufen.
+   */
+  function commitRecording(force = false): string[] {
+    const warnings = validateRecording(recordingSignals.value)
+    if (warnings.length > 0 && !force) return warnings
+    const { microcode, truncated } = applyRecording(
+      state.value.microcode,
+      recordingEntry.value,
+      recordingSignals.value,
+    )
+    state.value = { ...state.value, microcode: microcode as Signal[] }
+    if (truncated) warnings.push('Sequenz wurde am Ende des Mikrocode-Speichers (Adresse 199) abgeschnitten.')
+    isRecording.value = false
+    recordingSignals.value = []
+    return warnings
+  }
+
   /** Schaltet ein einzelnes Advanced-Feature ein oder aus. */
   function toggleFeature(feature: typeof AdvancedFeature[keyof typeof AdvancedFeature]) {
     const features = new Set(state.value.activeFeatures)
@@ -254,6 +334,11 @@ export const useSimulatorStore = defineStore('simulator', () => {
     mc,
     ir,
     trace,
+    // Recorder-State
+    isRecording,
+    recordingMnemonic,
+    recordingEntry,
+    recordingSignals,
     // Aktionen
     microstep,
     step,
@@ -266,9 +351,16 @@ export const useSimulatorStore = defineStore('simulator', () => {
     loadMicrocode,
     loadWorkspace,
     setRamCell,
+    setMicrocodeCell,
     toggleFeature,
     enableAllFeatures,
     disableAllFeatures,
     clearTrace,
+    // Recorder-Aktionen
+    startRecording,
+    cancelRecording,
+    recordSignal,
+    undoRecord,
+    commitRecording,
   }
 })

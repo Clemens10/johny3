@@ -12,6 +12,8 @@ import EditorPane from '@/components/EditorPane.vue'
 import RamTable from '@/components/RamTable.vue'
 import BusVisualization from '@/components/BusVisualization.vue'
 import MicrocodeTracePanel from '@/components/MicrocodeTracePanel.vue'
+import MicrocodeTable from '@/components/MicrocodeTable.vue'
+import RecorderBanner from '@/components/RecorderBanner.vue'
 import SaveDialog from '@/components/SaveDialog.vue'
 
 const store = useSimulatorStore()
@@ -169,6 +171,12 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
       @file-open="handleOpen"
     />
 
+    <!-- ═══ RECORDER-BANNER (nur im Aufnahme-Modus sichtbar) ═══ -->
+    <RecorderBanner
+      @warnings="reportWarnings"
+      @saved="notify('Mikrocode-Sequenz gespeichert', 'info')"
+    />
+
     <!-- ═══ DIALOGE & BENACHRICHTIGUNGEN ═══ -->
     <SaveDialog
       :open="showSaveDialog"
@@ -237,15 +245,13 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
             : 'border-transparent text-gray-500 hover:text-gray-300'"
           @click="bottomTab = 'microcode'"
         >
-          Mikrocode (folgt in Sprint 3)
+          Mikrocode
         </button>
       </div>
 
       <div class="flex-1 overflow-hidden">
         <RamTable v-if="bottomTab === 'ram'" />
-        <div v-else class="flex items-center justify-center h-full text-gray-700 text-sm">
-          Mikrocode-Tabelle folgt in Sprint 3
-        </div>
+        <MicrocodeTable v-else />
       </div>
 
     </div>

@@ -74,6 +74,20 @@ const emit = defineEmits<{
       Reset <kbd>⇧F5</kbd>
     </button>
 
+    <span class="text-gray-600 mx-0.5">│</span>
+
+    <!-- Recorder-Toggle (Schritt 18) -->
+    <button
+      class="tbtn"
+      :class="store.isRecording
+        ? 'bg-red-800 hover:bg-red-700 text-red-100 font-semibold'
+        : ''"
+      :title="store.isRecording ? 'Aufnahme aktiv — Klicke erneut, um abzubrechen' : 'Mikrocode-Recorder starten'"
+      @click="store.isRecording ? store.cancelRecording() : store.startRecording()"
+    >
+      {{ store.isRecording ? '● REC' : '○ Record' }}
+    </button>
+
     <!-- Speed-Slider -->
     <div class="flex items-center gap-1 text-xs text-gray-400 ml-0.5">
       <span>Slow</span>
