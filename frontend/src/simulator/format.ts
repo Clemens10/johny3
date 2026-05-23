@@ -1,4 +1,4 @@
-import { type Word, OPCODE_MAX } from './types'
+import { type Word, type Signal, OPCODE_MAX } from './types'
 
 /** Opcode → Mnemonic-Mapping für die Classic-Befehle. */
 const MNEMONICS: Record<number, string> = {
@@ -50,6 +50,47 @@ export function formatBinary(word: Word): string {
 export function getMnemonic(opcode: number): string {
   if (opcode < 0 || opcode > OPCODE_MAX) return '?'
   return MNEMONICS[opcode] ?? `OP${opcode}`
+}
+
+/**
+ * Kurz-Schreibweise eines Steuersignals (für den Mikrocode-Trace).
+ * Entspricht den Kommentaren in `types.ts`.
+ */
+const SIGNAL_NAMES: Record<number, string> = {
+  0:  'nop',
+  1:  'db-->ram',
+  2:  'ram-->db',
+  3:  'db-->ins',
+  4:  'ins-->ab',
+  5:  'ins-->mc',
+  6:  '=0?',
+  7:  'mc:=0',
+  8:  'pc-->ab',
+  9:  'pc++',
+  10: '=0:pc++',
+  11: 'ins-->pc',
+  12: 'acc:=0',
+  13: '+',
+  14: '−',
+  15: 'acc-->db',
+  16: 'acc++',
+  17: 'acc--',
+  18: 'db-->acc',
+  19: 'stop',
+  // Advanced
+  20: '×',
+  21: 'pc--',
+  22: '>0:pc++',
+  23: '<=0:pc++',
+  24: 'AND',
+  25: 'OR',
+  26: 'NOT',
+  27: '<<1',
+  28: '>>1',
+}
+
+export function signalName(signal: Signal): string {
+  return SIGNAL_NAMES[signal] ?? `?${signal}`
 }
 
 /** Disassembliert ein 16-Bit-Wort zu "MNEMONIC operand", z. B. "TAKE 5". */

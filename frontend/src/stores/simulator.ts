@@ -1,11 +1,32 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { type SimulatorState, type Signal, AdvancedFeature, RAM_SIZE, MICROCODE_SIZE } from '@/simulator/types'
-import {
-  createInitialState,
-  microstep as doMicrostep,
-  step as doStep,
-} from '@/simulator/simulator'
+import { createInitialState, microstep as doMicrostep } from '@/simulator/simulator'
+import { signalName } from '@/simulator/format'
+
+/** Ein Schnappschuss der Register vor/nach einem Mikroschritt — für den Trace. */
+interface TraceSnapshot {
+  pc: number; ir: number; acc: number; mc: number
+  dataBus: number; addressBus: number
+}
+
+/** Ein Eintrag im Mikrocode-Trace. */
+export interface TraceEntry {
+  id: number
+  signal: Signal
+  signalName: string
+  before: TraceSnapshot
+  after: TraceSnapshot
+}
+
+const TRACE_LIMIT = 50  // Panel zeigt die letzten 20, wir behalten etwas Puffer.
+
+function snapshot(s: SimulatorState): TraceSnapshot {
+  return {
+    pc: s.pc, ir: s.ir, acc: s.acc, mc: s.mc,
+    dataBus: s.dataBus, addressBus: s.addressBus,
+  }
+}
 
 const ALL_FEATURES = Object.values(AdvancedFeature)
 
@@ -26,6 +47,10 @@ export const useSimulatorStore = defineStore('simulator', () => {
   const speed = ref(3)
 
   let runTimer: ReturnType<typeof setInterval> | null = null
+
+  /** Mikrocode-Trace: jüngste Einträge hinten. Wird vom Trace-Panel angezeigt. */
+  const trace = ref<TraceEntry[]>([])
+  let traceCounter = 0
 
   // --- Computed ---
   const isHalted = computed(() => state.value.halted)
@@ -57,24 +82,55 @@ export const useSimulatorStore = defineStore('simulator', () => {
 
   // --- Aktionen ---
 
+  /**
+   * Führt einen einzelnen Mikroschritt aus UND hängt einen Trace-Eintrag an.
+   * Zentrale Stelle — `step()` und der Dauerlauf rufen das in einer Schleife.
+   */
+  function recordedMicrostep() {
+    if (state.value.halted) return
+    const before = snapshot(state.value)
+    const signal = (state.value.microcode[state.value.mc] ?? 0) as Signal
+    const next = doMicrostep(state.value)
+    state.value = next
+    trace.value.push({
+      id: traceCounter++,
+      signal,
+      signalName: signalName(signal),
+      before,
+      after: snapshot(next),
+    })
+    if (trace.value.length > TRACE_LIMIT) {
+      trace.value.splice(0, trace.value.length - TRACE_LIMIT)
+    }
+  }
+
   /** Führt einen einzelnen Mikroschritt aus. */
   function microstep() {
-    state.value = doMicrostep(state.value)
+    recordedMicrostep()
   }
 
-  /** Führt einen vollständigen Befehlsschritt aus (FETCH + Execution). */
+  /** Führt einen vollständigen Befehlsschritt aus (Mikroschritte bis mc=0). */
   function step() {
-    state.value = doStep(state.value)
+    if (state.value.halted) return
+    do {
+      recordedMicrostep()
+    } while (!state.value.halted && state.value.mc !== 0)
   }
 
-  /** Startet den Dauerlauf (Befehl pro Timer-Tick). */
+  /** Startet den Dauerlauf (ein vollständiger Befehl pro Timer-Tick). */
   function startRun() {
     if (isRunning.value || state.value.halted) return
     isRunning.value = true
     runTimer = setInterval(() => {
-      state.value = doStep(state.value)
+      step()
       if (state.value.halted) stopRun()
     }, delayMs())
+  }
+
+  /** Leert den Mikrocode-Trace (nach Reset oder Datei-Laden). */
+  function clearTrace() {
+    trace.value = []
+    traceCounter = 0
   }
 
   /** Hält den Dauerlauf an. */
@@ -95,6 +151,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
    */
   function reset() {
     stopRun()
+    clearTrace()
     state.value = {
       ...state.value,
       pc: 0,
@@ -113,6 +170,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
    */
   function loadRam(ram: number[]) {
     stopRun()
+    clearTrace()
     state.value = createInitialState(ram)
   }
 
@@ -131,6 +189,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
    */
   function loadMicrocode(microcode: number[]) {
     stopRun()
+    clearTrace()
     const padded = Array.from({ length: MICROCODE_SIZE }, (_, i) => microcode[i] ?? 0) as Signal[]
     state.value = { ...createInitialState(state.value.ram), microcode: padded }
   }
@@ -145,6 +204,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     features?: AdvancedFeature[]
   }) {
     stopRun()
+    clearTrace()
     const base = createInitialState(opts.ram)
     state.value = {
       ...base,
@@ -193,6 +253,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     acc,
     mc,
     ir,
+    trace,
     // Aktionen
     microstep,
     step,
@@ -208,5 +269,6 @@ export const useSimulatorStore = defineStore('simulator', () => {
     toggleFeature,
     enableAllFeatures,
     disableAllFeatures,
+    clearTrace,
   }
 })

@@ -11,6 +11,7 @@ import Toolbar from '@/components/Toolbar.vue'
 import EditorPane from '@/components/EditorPane.vue'
 import RamTable from '@/components/RamTable.vue'
 import BusVisualization from '@/components/BusVisualization.vue'
+import MicrocodeTracePanel from '@/components/MicrocodeTracePanel.vue'
 import SaveDialog from '@/components/SaveDialog.vue'
 
 const store = useSimulatorStore()
@@ -206,10 +207,13 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
         />
       </div>
 
-      <!-- Rechte Hälfte: Bus-Visualisierung -->
+      <!-- Mitte: Bus-Visualisierung -->
       <div class="flex-1 min-w-0">
         <BusVisualization />
       </div>
+
+      <!-- Rechte Seitenleiste: Mikrocode-Trace (einklappbar) -->
+      <MicrocodeTracePanel />
 
     </div>
 
