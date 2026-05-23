@@ -46,6 +46,39 @@ export function formatBinary(word: Word): string {
   return bits.slice(0, 4) + ' ' + bits.slice(4, 8) + ' ' + bits.slice(8, 12) + ' ' + bits.slice(12)
 }
 
+/**
+ * Globales Anzeige-Format für 16-Bit-Wortinhalte (Schritt 19).
+ * Adressen (PC/MC/AB) bleiben immer dezimal — der Toggle wirkt nur auf Werte.
+ */
+export type WordFormat = 'dec' | 'bin' | 'hex'
+
+/** Formatiert ein 16-Bit-Wort entsprechend dem global gewählten Format. */
+export function formatWord(word: Word, fmt: WordFormat): string {
+  switch (fmt) {
+    case 'dec': return formatDecimal(word)
+    case 'bin': return formatBinary(word)
+    case 'hex': return formatHex(word)
+  }
+}
+
+/**
+ * Formatiert eine kleine Zahl (z. B. Signal-Code 0–28) entsprechend dem
+ * gewählten Format. Anders als 16-Bit-Wörter passend kompakt:
+ *   dec → "28", bin → "0001 1100" (8 Bit), hex → "0x1C"
+ */
+export function formatByte(n: number, fmt: WordFormat): string {
+  switch (fmt) {
+    case 'dec':
+      return String(n)
+    case 'bin': {
+      const bits = (n & 0xFF).toString(2).padStart(8, '0')
+      return bits.slice(0, 4) + ' ' + bits.slice(4)
+    }
+    case 'hex':
+      return '0x' + (n & 0xFF).toString(16).toUpperCase().padStart(2, '0')
+  }
+}
+
 /** Gibt den Mnemonic für einen Opcode zurück (oder leer wenn unbekannt). */
 export function getMnemonic(opcode: number): string {
   if (opcode < 0 || opcode > OPCODE_MAX) return '?'

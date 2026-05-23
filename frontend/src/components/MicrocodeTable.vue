@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useSimulatorStore } from '@/stores/simulator'
-import { signalName } from '@/simulator/format'
+import { signalName, formatByte } from '@/simulator/format'
 import { Signal, MICROCODE_SIZE, type Signal as SignalType } from '@/simulator/types'
 
 const store = useSimulatorStore()
@@ -127,7 +127,10 @@ const recorderEntry = computed(() => store.recordingEntry)
         <thead class="sticky top-0 bg-gray-800 text-gray-200 z-10">
           <tr>
             <th class="px-3 py-1 text-right w-16">Mikr.</th>
-            <th class="px-3 py-1 text-right w-12">Code</th>
+            <th
+              class="px-3 py-1 text-right"
+              :class="store.wordFormat === 'bin' ? 'w-24' : 'w-14'"
+            >Code</th>
             <th class="px-3 py-1 text-left  w-32">Signal</th>
             <th class="px-3 py-1 text-left">Befehl</th>
           </tr>
@@ -152,9 +155,9 @@ const recorderEntry = computed(() => store.recordingEntry)
               {{ String(addr).padStart(3, '0') }}
             </td>
 
-            <!-- Signal-Code (rohe Zahl) -->
+            <!-- Signal-Code (gemäß globalem Format-Toggle) -->
             <td class="px-3 py-0.5 text-right text-gray-400">
-              {{ store.state.microcode[addr] }}
+              {{ formatByte(store.state.microcode[addr] ?? 0, store.wordFormat) }}
             </td>
 
             <!-- Signal-Name + Dropdown -->

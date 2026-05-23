@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSimulatorStore } from '@/stores/simulator'
-import { formatDecimal } from '@/simulator/format'
+import { formatWord, type WordFormat } from '@/simulator/format'
 import ModeBadge from './ModeBadge.vue'
 
 const store = useSimulatorStore()
@@ -11,6 +11,12 @@ const emit = defineEmits<{
   (e: 'file-open'): void
   (e: 'file-save'): void
 }>()
+
+const FORMATS: { value: WordFormat; label: string; title: string }[] = [
+  { value: 'dec', label: 'Dez', title: 'Dezimal (OO.OOO)' },
+  { value: 'bin', label: 'Bin', title: 'Binär (16 Bit, 4er-Gruppen)' },
+  { value: 'hex', label: 'Hex', title: 'Hex (0xOOOO)' },
+]
 </script>
 
 <template>
@@ -106,6 +112,22 @@ const emit = defineEmits<{
     <!-- Modus-Badge (Section 5.7) -->
     <ModeBadge />
 
+    <!-- Anzeige-Format-Toggle (Schritt 19) -->
+    <div class="flex rounded border border-gray-700 overflow-hidden text-xs ml-1 select-none">
+      <button
+        v-for="f in FORMATS"
+        :key="f.value"
+        class="px-2 py-0.5 transition-colors"
+        :class="store.wordFormat === f.value
+          ? 'bg-blue-700 text-white font-semibold'
+          : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-100'"
+        :title="f.title"
+        @click="store.wordFormat = f.value"
+      >
+        {{ f.label }}
+      </button>
+    </div>
+
     <!-- Status-Anzeige + Register (rechts) -->
     <div class="ml-auto flex items-center gap-3 text-xs font-mono">
       <span v-if="store.isRunning"
@@ -115,16 +137,16 @@ const emit = defineEmits<{
 
       <span class="text-gray-600">│</span>
 
-      <span title="Program Counter">
+      <span title="Program Counter (Adresse, immer dezimal)">
         PC: <span class="text-blue-300  font-bold">{{ String(store.pc).padStart(3,'0') }}</span>
       </span>
-      <span title="Instruction Register">
-        IR: <span class="text-purple-300 font-bold">{{ formatDecimal(store.ir) }}</span>
+      <span title="Instruction Register (16-Bit-Wort)">
+        IR: <span class="text-purple-300 font-bold">{{ formatWord(store.ir, store.wordFormat) }}</span>
       </span>
-      <span title="Accumulator">
-        ACC: <span class="text-yellow-300 font-bold">{{ store.acc }}</span>
+      <span title="Accumulator (16-Bit-Wort)">
+        ACC: <span class="text-yellow-300 font-bold">{{ formatWord(store.acc, store.wordFormat) }}</span>
       </span>
-      <span title="Microcode Counter">
+      <span title="Microcode Counter (Adresse, immer dezimal)">
         MC: <span class="text-gray-300  font-bold">{{ String(store.mc).padStart(3,'0') }}</span>
       </span>
     </div>

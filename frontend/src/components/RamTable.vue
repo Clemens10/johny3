@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { useSimulatorStore } from '@/stores/simulator'
-import { formatDecimal, disassemble, decode } from '@/simulator/format'
+import { formatDecimal, formatWord, disassemble, decode } from '@/simulator/format'
 import { RAM_SIZE } from '@/simulator/types'
 import Inspector from '@/components/Inspector.vue'
 
@@ -116,7 +116,10 @@ function clearHover() {
         <thead class="sticky top-0 bg-gray-800 text-gray-200 z-10">
           <tr>
             <th class="px-3 py-1 text-right w-16">Adr</th>
-            <th class="px-3 py-1 text-right w-20">Data</th>
+            <th
+              class="px-3 py-1 text-right"
+              :class="store.wordFormat === 'bin' ? 'w-44' : 'w-24'"
+            >Data</th>
             <th class="px-3 py-1 text-left  w-24">Asm</th>
             <th class="px-3 py-1 text-right w-14">Opnd</th>
             <th class="px-3 py-1 text-left">Note</th>
@@ -127,7 +130,7 @@ function clearHover() {
             v-for="addr in ALL_ADDRESSES"
             :key="addr"
             :data-addr="addr"
-            v-memo="[store.state.ram[addr], store.state.pc === addr, editingAddress === addr]"
+            v-memo="[store.state.ram[addr], store.state.pc === addr, editingAddress === addr, store.wordFormat]"
             :class="[
               'border-b border-gray-700 hover:bg-gray-700 cursor-pointer',
               store.state.pc === addr ? 'bg-blue-900 text-blue-100' : 'text-gray-200',
@@ -140,7 +143,7 @@ function clearHover() {
               {{ String(addr).padStart(3, '0') }}
             </td>
 
-            <!-- Data im OO.OOO-Format -->
+            <!-- Data im aktuell gewählten Format (Toggle in der Toolbar) -->
             <td class="px-3 py-0.5 text-right">
               <input
                 v-if="editingAddress === addr"
@@ -151,7 +154,7 @@ function clearHover() {
                 @blur="commitEdit"
                 autofocus
               />
-              <span v-else>{{ formatDecimal(store.state.ram[addr] ?? 0) }}</span>
+              <span v-else>{{ formatWord(store.state.ram[addr] ?? 0, store.wordFormat) }}</span>
             </td>
 
             <!-- Disassemblierter Befehl -->

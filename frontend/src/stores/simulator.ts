@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { type SimulatorState, type Signal, AdvancedFeature, RAM_SIZE, MICROCODE_SIZE } from '@/simulator/types'
 import { createInitialState, microstep as doMicrostep } from '@/simulator/simulator'
-import { signalName } from '@/simulator/format'
+import { signalName, type WordFormat } from '@/simulator/format'
 import {
   appendSignal as recAppend,
   undoLastSignal as recUndo,
@@ -57,6 +57,13 @@ export const useSimulatorStore = defineStore('simulator', () => {
   /** Mikrocode-Trace: jüngste Einträge hinten. Wird vom Trace-Panel angezeigt. */
   const trace = ref<TraceEntry[]>([])
   let traceCounter = 0
+
+  /**
+   * Globales Anzeige-Format für Wortinhalte (Schritt 19).
+   * Wirkt auf RAM-Tabelle, Mikrocode-Code-Spalte und Register-Anzeigen.
+   * Adressen bleiben immer dezimal; Inspector zeigt stets alle drei Formate.
+   */
+  const wordFormat = ref<WordFormat>('dec')
 
   // --- Recorder-State (Schritt 18) ---
   /** Aufnahme-Modus aktiv? Toolbar-Toggle + Banner-Sichtbarkeit. */
@@ -334,6 +341,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     mc,
     ir,
     trace,
+    wordFormat,
     // Recorder-State
     isRecording,
     recordingMnemonic,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSimulatorStore } from '@/stores/simulator'
-import { formatDecimal, formatHex } from '@/simulator/format'
+import { formatDecimal, formatHex, formatWord } from '@/simulator/format'
 import { Signal } from '@/simulator/types'
 
 const store = useSimulatorStore()
@@ -110,7 +110,7 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
         <div class="flex-1 flex flex-col items-center justify-center gap-2 p-3">
           <div class="text-gray-400 text-xs">RAM [ {{ String(ab).padStart(3, '0') }} ]</div>
           <div class="text-white text-lg font-bold">
-            {{ formatDecimal(s.ram[ab] ?? 0) }}
+            {{ formatWord(s.ram[ab] ?? 0, store.wordFormat) }}
           </div>
           <div class="text-gray-500 text-xs">{{ formatHex(s.ram[ab] ?? 0) }}</div>
         </div>
@@ -141,7 +141,7 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
               class="font-bold transition-colors"
               :class="activeSignal === Signal.DB_INS ? 'text-yellow-300' : 'text-white'"
             >
-              {{ formatDecimal(s.ir) }}
+              {{ formatWord(s.ir, store.wordFormat) }}
             </span>
           </div>
 
@@ -178,7 +178,7 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
             :class="activeSignal === Signal.PLUS || activeSignal === Signal.MINUS || activeSignal === Signal.ACC_ZERO
               ? 'text-yellow-300' : 'text-white'"
           >
-            {{ s.acc }}
+            {{ formatWord(s.acc, store.wordFormat) }}
           </span>
           <span class="text-gray-500 text-xs">{{ formatHex(s.acc) }}</span>
 
@@ -198,7 +198,7 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
     >
       <span class="text-green-400">DB</span>
       <span class="text-xs">↔</span>
-      <span class="text-white font-bold">{{ db }}</span>
+      <span class="text-white font-bold">{{ formatWord(db, store.wordFormat) }}</span>
       <span class="text-xs text-gray-400">({{ formatDecimal(db) }} / {{ formatHex(db) }})</span>
     </div>
 
