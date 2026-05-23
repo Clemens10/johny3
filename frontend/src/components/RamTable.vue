@@ -3,6 +3,7 @@ import { ref, watch, onMounted, nextTick } from 'vue'
 import { useSimulatorStore } from '@/stores/simulator'
 import { formatDecimal, disassemble, decode } from '@/simulator/format'
 import { RAM_SIZE } from '@/simulator/types'
+import Inspector from '@/components/Inspector.vue'
 
 const store = useSimulatorStore()
 
@@ -61,6 +62,21 @@ function commitEdit() {
 function cancelEdit() {
   editingAddress.value = null
 }
+
+// ─── Inspector-Hover ──────────────────────────────────────────────────────────
+const hoverAddress = ref<number | null>(null)
+const hoverX = ref(0)
+const hoverY = ref(0)
+
+function onRowHover(address: number, event: MouseEvent) {
+  hoverAddress.value = address
+  hoverX.value = event.clientX
+  hoverY.value = event.clientY
+}
+
+function clearHover() {
+  hoverAddress.value = null
+}
 </script>
 
 <template>
@@ -90,7 +106,12 @@ function cancelEdit() {
     </div>
 
     <!-- ─── Tabelle (alle 1000 Zeilen) ─── -->
-    <div ref="containerRef" class="overflow-y-auto flex-1">
+    <div
+      ref="containerRef"
+      class="overflow-y-auto flex-1"
+      @mouseleave="clearHover"
+      @scroll="clearHover"
+    >
       <table class="w-full text-sm font-mono border-collapse">
         <thead class="sticky top-0 bg-gray-800 text-gray-200 z-10">
           <tr>
@@ -112,6 +133,7 @@ function cancelEdit() {
               store.state.pc === addr ? 'bg-blue-900 text-blue-100' : 'text-gray-200',
             ]"
             @dblclick="startEdit(addr)"
+            @mouseenter="onRowHover(addr, $event)"
           >
             <!-- Adresse -->
             <td class="px-3 py-0.5 text-right text-gray-400">
@@ -150,6 +172,15 @@ function cancelEdit() {
         </tbody>
       </table>
     </div>
+
+    <!-- ─── Inspector-Tooltip (Hover über eine Zeile) ─── -->
+    <Inspector
+      v-if="hoverAddress !== null && editingAddress === null"
+      :address="hoverAddress"
+      :word="store.state.ram[hoverAddress] ?? 0"
+      :x="hoverX"
+      :y="hoverY"
+    />
 
   </div>
 </template>
