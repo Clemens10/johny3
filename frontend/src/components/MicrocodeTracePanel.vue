@@ -4,7 +4,8 @@ import { useSimulatorStore, type TraceEntry } from '@/stores/simulator'
 import { formatDecimal } from '@/simulator/format'
 
 const store = useSimulatorStore()
-const collapsed = ref(false)
+// Standardmäßig eingeklappt — RAM/Mikrocode ist die Hauptansicht, Trace nice-to-have.
+const collapsed = ref(true)
 
 const VISIBLE_COUNT = 20
 

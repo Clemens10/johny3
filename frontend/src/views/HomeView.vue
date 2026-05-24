@@ -200,8 +200,10 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
       </div>
     </div>
 
-    <!-- ═══ MITTLERER BEREICH: Editor links | Bus rechts ═══ -->
-    <div class="flex flex-1 min-h-0 border-b border-gray-700">
+    <!-- ═══ MITTLERER BEREICH: Editor | Bus | (Trace) ═══ -->
+    <!-- Flex-Anteil 2 — RAM/Mikrocode-Tabelle unten ist das Arbeitswerkzeug
+         und bekommt den größeren Anteil 3. -->
+    <div class="flex flex-[2_2_0] min-h-0 border-b border-gray-700">
 
       <!-- Linke Hälfte: Assembler-Editor (Monaco) -->
       <div class="flex-1 flex flex-col border-r border-gray-700 min-w-0">
@@ -225,8 +227,8 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
 
     </div>
 
-    <!-- ═══ UNTERER BEREICH: RAM / Mikrocode (Tabs) ═══ -->
-    <div class="h-56 flex flex-col shrink-0">
+    <!-- ═══ UNTERER BEREICH: RAM / Mikrocode (Tabs) — Hauptansicht ═══ -->
+    <div class="flex-[3_3_0] flex flex-col min-h-0">
 
       <div class="flex text-xs border-b border-gray-700 bg-gray-800 shrink-0 select-none">
         <button
