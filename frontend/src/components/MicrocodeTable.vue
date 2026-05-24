@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useSimulatorStore } from '@/stores/simulator'
 import { signalName, formatByte } from '@/simulator/format'
 import { Signal, MICROCODE_SIZE, type Signal as SignalType } from '@/simulator/types'
+import { isSignalAvailable } from '@/simulator/signals'
 
 const store = useSimulatorStore()
 
@@ -15,6 +16,19 @@ const ALL_ADDRESSES = Array.from({ length: MICROCODE_SIZE }, (_, i) => i)
 const ALL_SIGNALS = Object.values(Signal).filter(
   (v): v is SignalType => typeof v === 'number',
 ).sort((a, b) => a - b)
+
+/**
+ * Signal-Liste für ein bestimmtes Dropdown. Filtert Advanced-Signale anhand
+ * der aktiven Features (Classic → nur 0–19). Der aktuelle Zellwert wird auch
+ * dann eingeblendet, wenn er an sich nicht verfügbar ist — sonst würde das
+ * Dropdown nach einem Modus-Wechsel den eigenen Wert verlieren.
+ */
+function optionsFor(addr: number): SignalType[] {
+  const visible = ALL_SIGNALS.filter(s => isSignalAvailable(s, store.state.activeFeatures))
+  const current = (store.state.microcode[addr] ?? 0) as SignalType
+  if (visible.includes(current)) return visible
+  return [...visible, current].sort((a, b) => a - b)
+}
 
 /**
  * Einsprung-Labels für die Mnemonic-Spalte. Nur an den Default-Einsprung­
@@ -173,7 +187,7 @@ const recorderEntry = computed(() => store.recordingEntry)
                 @blur="cancelEdit"
                 autofocus
               >
-                <option v-for="sig in ALL_SIGNALS" :key="sig" :value="sig">
+                <option v-for="sig in optionsFor(addr)" :key="sig" :value="sig">
                   {{ sig }} — {{ signalName(sig) }}
                 </option>
               </select>

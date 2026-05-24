@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useSimulatorStore } from '@/stores/simulator'
 import { formatDecimal, formatHex, formatWord } from '@/simulator/format'
 import { Signal } from '@/simulator/types'
+import { isSignalAvailable } from '@/simulator/signals'
 
 const store = useSimulatorStore()
 const s = computed(() => store.state)
@@ -69,6 +70,20 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
     Signal.AND, Signal.OR, Signal.NOT, Signal.SHL, Signal.SHR,
   ]},
 ]
+
+/**
+ * Gruppen mit nur den im aktuellen Modus verfügbaren Signalen.
+ * Im Classic-Modus fällt die Advanced-Gruppe komplett weg, im Custom-Modus
+ * bleiben nur die freigeschalteten Signale stehen.
+ */
+const visibleGroups = computed(() =>
+  SIGNAL_GROUPS
+    .map(g => ({
+      title:   g.title,
+      signals: g.signals.filter(sig => isSignalAvailable(sig, s.value.activeFeatures)),
+    }))
+    .filter(g => g.signals.length > 0),
+)
 </script>
 
 <template>
@@ -211,7 +226,7 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
         ● Aufnahme — klicke ein Signal, um es aufzunehmen:
       </div>
       <div
-        v-for="group in SIGNAL_GROUPS"
+        v-for="group in visibleGroups"
         :key="group.title"
         class="flex items-baseline gap-2 mb-1 last:mb-0"
       >

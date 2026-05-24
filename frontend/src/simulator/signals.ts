@@ -1,4 +1,30 @@
-import { type SimulatorState, type Word, Signal, WORD_MAX } from './types'
+import { type SimulatorState, type Word, Signal, WORD_MAX, AdvancedFeature } from './types'
+
+/**
+ * Welches Advanced-Feature ein Signal voraussetzt.
+ * Nicht gelistete Signale (Codes 0–19) sind Classic und immer verfügbar.
+ */
+const SIGNAL_FEATURE: Partial<Record<Signal, AdvancedFeature>> = {
+  [Signal.MUL]:      AdvancedFeature.F1_MUL,
+  [Signal.PC_DEC]:   AdvancedFeature.F2_PC_DEC,
+  [Signal.GT_SKIP]:  AdvancedFeature.F3A_GT,
+  [Signal.LEQ_SKIP]: AdvancedFeature.F3B_LEQ,
+  [Signal.AND]:      AdvancedFeature.F4_BITWISE,
+  [Signal.OR]:       AdvancedFeature.F4_BITWISE,
+  [Signal.NOT]:      AdvancedFeature.F4_BITWISE,
+  [Signal.SHL]:      AdvancedFeature.F4_BITWISE,
+  [Signal.SHR]:      AdvancedFeature.F4_BITWISE,
+}
+
+/**
+ * Ob ein Signal in der UI angeboten werden soll (Recorder-Palette, Mikrocode-
+ * Dropdown). Classic-Signale immer; Advanced-Signale nur wenn das zugehörige
+ * Feature aktiv ist. Filtert die Palette automatisch beim Wechsel der Modi.
+ */
+export function isSignalAvailable(signal: Signal, activeFeatures: Set<AdvancedFeature>): boolean {
+  const required = SIGNAL_FEATURE[signal]
+  return required === undefined || activeFeatures.has(required)
+}
 
 /** Hält das Ergebnis auf 16 Bit (funktioniert auch bei negativem Zwischenergebnis). */
 function mod16(n: number): Word {
