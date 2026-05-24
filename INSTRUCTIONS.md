@@ -151,8 +151,7 @@ Jeder Mikroschritt aktiviert genau ein Steuersignal. Signal-Codes:
 |:---:|---|---|---|
 | 20 | `mul`         | ACC := (ACC × DB) mod 2^16 | F1: Multiplikation |
 | 21 | `pc--`        | PC dekrementieren | F2: PC-Dekrement |
-| 22 | `>0:pc++`     | PC inkrementieren wenn ACC > 0 | F3a: Größer-Null |
-| 23 | `<=0:pc++`    | PC inkrementieren wenn ACC ≤ 0 | F3b: Kleiner-Gleich-Null |
+| 22 | `>0:pc++`     | PC inkrementieren wenn ACC > 0 | F3: Größer-Null |
 | 24 | `and`         | ACC := ACC AND DB | F4: Bitweise |
 | 25 | `or`          | ACC := ACC OR DB | F4: Bitweise |
 | 26 | `not`         | ACC := NOT ACC (Einer­komplement) | F4: Bitweise |
@@ -216,7 +215,7 @@ abgeschnitten). Es gibt **keine** negativen Zahlen.
 
 ```
 110 MUL adr:   ins-->ab → ram-->db → mul       → pc++ → mc:=0
-120 LOOP adr:  ins-->ab → ram-->db → db-->acc  → pc-->ab → ram-->db → db-->ins → pc++ → <=0:pc++ → ins-->pc → mc:=0
+120 LOOP adr:  ins-->ab → ram-->db → db-->acc  → pc-->ab → ram-->db → db-->ins → pc++ → >0:pc++ → ins-->pc → mc:=0
                                                                             (mehrzeiliger Befehl)
 130 TGT adr:   ins-->ab → ram-->db → db-->acc  → >0:pc++ → pc++ → mc:=0
 ```

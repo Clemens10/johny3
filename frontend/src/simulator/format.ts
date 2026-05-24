@@ -114,7 +114,6 @@ const SIGNAL_NAMES: Record<number, string> = {
   20: '×',
   21: 'pc--',
   22: '>0:pc++',
-  23: '<=0:pc++',
   24: 'AND',
   25: 'OR',
   26: 'NOT',

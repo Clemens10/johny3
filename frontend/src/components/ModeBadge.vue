@@ -27,13 +27,8 @@ const FEATURES = [
   },
   {
     key:     AdvancedFeature.F3A_GT,
-    label:   'F3a: Größer-Null',
+    label:   'F3: Größer-Null',
     detail:  '>0:pc++  (Signal 22)',
-  },
-  {
-    key:     AdvancedFeature.F3B_LEQ,
-    label:   'F3b: Kleiner-Gleich-Null',
-    detail:  '≤0:pc++  (Signal 23)',
   },
   {
     key:     AdvancedFeature.F4_BITWISE,

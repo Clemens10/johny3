@@ -41,7 +41,7 @@ const SIGNAL_NAMES: Record<number, string> = {
   5: 'ins→mc', 6: '=0?', 7: 'mc:=0', 8: 'pc→ab', 9: 'pc++',
   10: '=0:pc++', 11: 'ins→pc', 12: 'acc:=0', 13: 'plus', 14: 'minus',
   15: 'acc→db', 16: 'acc++', 17: 'acc--', 18: 'db→acc', 19: 'stop',
-  20: 'mul', 21: 'pc--', 22: '>0:pc++', 23: '≤0:pc++',
+  20: 'mul', 21: 'pc--', 22: '>0:pc++',
   24: 'and', 25: 'or', 26: 'not', 27: 'shl', 28: 'shr',
 }
 
@@ -66,7 +66,7 @@ const SIGNAL_GROUPS: { title: string; signals: Signal[] }[] = [
     Signal.PC_INC, Signal.MC_ZERO, Signal.ZERO_TEST, Signal.ZERO_SKIP, Signal.STOP, Signal.NOP,
   ]},
   { title: 'Advanced', signals: [
-    Signal.MUL, Signal.PC_DEC, Signal.GT_SKIP, Signal.LEQ_SKIP,
+    Signal.MUL, Signal.PC_DEC, Signal.GT_SKIP,
     Signal.AND, Signal.OR, Signal.NOT, Signal.SHL, Signal.SHR,
   ]},
 ]

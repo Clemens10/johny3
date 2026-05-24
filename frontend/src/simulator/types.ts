@@ -51,8 +51,8 @@ export const Signal = {
   // Advanced (Codes 20–28)
   MUL:       20,  // ACC := (ACC × DB) mod 2^16   [F1]
   PC_DEC:    21,  // pc--                          [F2]
-  GT_SKIP:   22,  // >0:pc++                       [F3a]
-  LEQ_SKIP:  23,  // <=0:pc++                      [F3b]
+  GT_SKIP:   22,  // >0:pc++                       [F3]
+  // 23 frei (war <=0:pc++, redundant zu =0:pc++ da es keine negativen Zahlen gibt)
   AND:       24,  // ACC := ACC AND DB             [F4]
   OR:        25,  // ACC := ACC OR DB              [F4]
   NOT:       26,  // ACC := NOT ACC                [F4]
@@ -66,7 +66,6 @@ export const AdvancedFeature = {
   F1_MUL:     'F1_MUL',
   F2_PC_DEC:  'F2_PC_DEC',
   F3A_GT:     'F3A_GT',
-  F3B_LEQ:    'F3B_LEQ',
   F4_BITWISE: 'F4_BITWISE',
 } as const;
 export type AdvancedFeature = (typeof AdvancedFeature)[keyof typeof AdvancedFeature];

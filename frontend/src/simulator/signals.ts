@@ -8,7 +8,6 @@ const SIGNAL_FEATURE: Partial<Record<Signal, AdvancedFeature>> = {
   [Signal.MUL]:      AdvancedFeature.F1_MUL,
   [Signal.PC_DEC]:   AdvancedFeature.F2_PC_DEC,
   [Signal.GT_SKIP]:  AdvancedFeature.F3A_GT,
-  [Signal.LEQ_SKIP]: AdvancedFeature.F3B_LEQ,
   [Signal.AND]:      AdvancedFeature.F4_BITWISE,
   [Signal.OR]:       AdvancedFeature.F4_BITWISE,
   [Signal.NOT]:      AdvancedFeature.F4_BITWISE,
@@ -114,9 +113,6 @@ export function applySignal(state: SimulatorState, signal: Signal): SimulatorSta
 
     case Signal.GT_SKIP:    // >0:pc++
       return s.acc > 0 ? { ...s, pc: (s.pc + 1) & 0x0FFF } : s
-
-    case Signal.LEQ_SKIP:   // <=0:pc++ (da keine negativen Zahlen: ≡ =0:pc++)
-      return s.acc === 0 ? { ...s, pc: (s.pc + 1) & 0x0FFF } : s
 
     case Signal.AND:        // ACC := ACC AND DB
       return { ...s, acc: (s.acc & s.dataBus) & WORD_MAX }
