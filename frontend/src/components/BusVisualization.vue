@@ -47,108 +47,109 @@ function fullName(sig: Signal): string {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-gray-900 text-gray-100 p-4 gap-2 font-mono text-sm select-none">
+  <div class="flex flex-col h-full bg-gray-900 text-gray-100 p-3 gap-2 font-mono text-sm select-none">
 
     <!-- ─── Bus-Legende ──────────────────────────────────────────────────── -->
-    <div class="flex gap-4 text-xs">
+    <div class="flex gap-3 text-xs items-center">
       <span class="flex items-center gap-1">
-        <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
-        Adressbus (AB)
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+        AB
       </span>
       <span class="flex items-center gap-1">
-        <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
-        Datenbus (DB)
+        <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+        DB
       </span>
       <span v-if="store.isRecording" class="ml-auto text-yellow-300 text-xs font-semibold">
-        ● Aufnahme — klicke ein Tor in der Visualisierung
+        ● Aufnahme — klicke ein Tor in der Bus-Linie oder eine Operation
       </span>
     </div>
 
-    <!-- ─── Adressbus-Leiste (oben) ──────────────────────────────────────── -->
+    <!-- ─── Adressbus-Balken (Tore SITZEN AUF dem AB selbst) ─────────────── -->
+    <!-- Zweizeilig: oben AB-Beschriftung + Wert, darunter Chip-Reihe in
+         3 Spalten ausgerichtet auf MEMORY / CU / ALU. -->
     <div
-      class="flex items-center justify-center gap-2 rounded px-3 py-1 text-sm transition-all"
-      :class="abActive ? 'bg-blue-800 text-blue-200' : 'bg-gray-800 text-gray-500'"
+      class="rounded transition-colors shrink-0"
+      :class="abActive ? 'bg-blue-900/70 ring-1 ring-blue-500' : 'bg-gray-800'"
     >
-      <span class="text-blue-400">AB</span>
-      <span class="text-xs">→</span>
-      <span class="text-white font-bold">{{ String(ab).padStart(3, '0') }}</span>
-      <span class="text-xs text-gray-400">(Adresse)</span>
-    </div>
-
-    <!-- ─── Tore zur AB (zwischen AB und 3-Spalten-Block) ────────────────── -->
-    <div class="grid grid-cols-3 gap-3 items-start">
-      <!-- über MEMORY: nichts (AB wird von MEMORY nur gelesen) -->
-      <div></div>
-      <!-- über CONTROL UNIT: pc→ab und ins→ab -->
-      <div class="flex justify-center gap-1.5">
-        <BusSignalChip
-          :signal="Signal.PC_AB"  label="↑ pc→ab"
-          :full-name="fullName(Signal.PC_AB)"  :active-signal="activeSignal"
-        />
-        <BusSignalChip
-          :signal="Signal.INS_AB" label="↑ ins→ab"
-          :full-name="fullName(Signal.INS_AB)" :active-signal="activeSignal"
-        />
+      <div class="flex items-center justify-center gap-2 px-3 pt-1 pb-0.5"
+        :class="abActive ? 'text-blue-100' : 'text-gray-400'"
+      >
+        <span class="text-blue-400 text-xs font-bold">ADRESSBUS</span>
+        <span class="text-xs">→</span>
+        <span class="text-white font-bold">{{ String(ab).padStart(3, '0') }}</span>
+        <span class="text-[10px] text-gray-500">(Adresse)</span>
       </div>
-      <!-- über ALU: nichts -->
-      <div></div>
+      <div class="grid grid-cols-3 gap-2 px-2 pb-1.5">
+        <div></div>
+        <div class="flex flex-wrap justify-center gap-1">
+          <BusSignalChip
+            :signal="Signal.PC_AB"  label="pc→ab"
+            :full-name="fullName(Signal.PC_AB)"  :active-signal="activeSignal"
+          />
+          <BusSignalChip
+            :signal="Signal.INS_AB" label="ins→ab"
+            :full-name="fullName(Signal.INS_AB)" :active-signal="activeSignal"
+          />
+        </div>
+        <div></div>
+      </div>
     </div>
 
-    <!-- ─── Drei Hauptspalten ────────────────────────────────────────────── -->
-    <div class="grid grid-cols-3 gap-3 flex-1 min-h-0">
+    <!-- ─── Drei Hauptspalten (ohne Tor-Chips außerhalb) ─────────────────── -->
+    <div class="grid grid-cols-3 gap-2 flex-1 min-h-0">
 
       <!-- MEMORY ────────────────────────────────────────────────────────── -->
-      <div class="flex flex-col rounded border-2 transition-all"
+      <div class="flex flex-col rounded border-2 transition-colors min-h-0"
         :class="dbActive && activeSignal === Signal.RAM_DB ? 'border-green-500' : 'border-gray-600'"
       >
-        <div class="bg-gray-700 text-center py-1 text-xs font-bold tracking-widest rounded-t text-gray-300">
+        <div class="bg-gray-700 text-center py-0.5 text-[11px] font-bold tracking-widest rounded-t text-gray-300">
           MEMORY
         </div>
-        <div class="flex-1 flex flex-col items-center justify-center gap-2 p-3">
-          <div class="text-gray-400 text-xs">RAM [ {{ String(ab).padStart(3, '0') }} ]</div>
-          <div class="text-white text-lg font-bold">
+        <div class="flex-1 flex flex-col items-center justify-center gap-1 p-2 overflow-hidden">
+          <div class="text-gray-400 text-[10px]">RAM [ {{ String(ab).padStart(3, '0') }} ]</div>
+          <div class="text-white text-base font-bold truncate w-full text-center">
             {{ formatWord(s.ram[ab] ?? 0, store.wordFormat) }}
           </div>
-          <div class="text-gray-500 text-xs">{{ formatHex(s.ram[ab] ?? 0) }}</div>
+          <div class="text-gray-500 text-[10px] truncate w-full text-center">{{ formatHex(s.ram[ab] ?? 0) }}</div>
         </div>
       </div>
 
       <!-- CONTROL UNIT ──────────────────────────────────────────────────── -->
       <div class="flex flex-col rounded border-2 border-gray-600 min-h-0">
-        <div class="bg-gray-700 text-center py-1 text-xs font-bold tracking-widest rounded-t text-gray-300">
+        <div class="bg-gray-700 text-center py-0.5 text-[11px] font-bold tracking-widest rounded-t text-gray-300">
           CONTROL UNIT
         </div>
-        <div class="flex-1 p-2 flex flex-col gap-2 overflow-auto">
+        <div class="flex-1 p-1.5 flex flex-col gap-1.5 overflow-auto">
 
-          <!-- Register PC / IR / MC -->
-          <div class="flex flex-col gap-0.5">
-            <div class="flex justify-between items-center">
-              <span class="text-gray-400 text-xs">PC</span>
-              <span class="font-bold transition-colors"
+          <!-- Register PC / IR / MC kompakt -->
+          <div class="flex flex-col gap-0">
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="text-gray-400 text-[10px]">PC</span>
+              <span class="font-bold transition-colors text-sm truncate"
                 :class="activeSignal === Signal.PC_INC || activeSignal === Signal.PC_DEC || activeSignal === Signal.INS_PC
                   ? 'text-blue-300' : 'text-white'"
               >
                 {{ String(s.pc).padStart(3, '0') }}
               </span>
             </div>
-            <div class="flex justify-between items-center">
-              <span class="text-gray-400 text-xs">IR</span>
-              <span class="font-bold transition-colors"
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="text-gray-400 text-[10px]">IR</span>
+              <span class="font-bold transition-colors text-sm truncate"
                 :class="activeSignal === Signal.DB_INS ? 'text-yellow-300' : 'text-white'"
               >
                 {{ formatWord(s.ir, store.wordFormat) }}
               </span>
             </div>
-            <div class="flex justify-between items-center">
-              <span class="text-gray-400 text-xs">MC</span>
-              <span class="font-bold text-purple-300">{{ String(s.mc).padStart(3, '0') }}</span>
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="text-gray-400 text-[10px]">MC</span>
+              <span class="font-bold text-purple-300 text-sm truncate">{{ String(s.mc).padStart(3, '0') }}</span>
             </div>
           </div>
 
-          <!-- Operationen: PC-Modifikationen -->
-          <div class="border-t border-gray-700 pt-1.5">
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">PC-Operationen</div>
-            <div class="flex flex-wrap gap-1">
+          <!-- PC-Operationen -->
+          <div class="border-t border-gray-700 pt-1">
+            <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">PC-Operationen</div>
+            <div class="flex flex-wrap gap-0.5">
               <BusSignalChip :signal="Signal.PC_INC"    label="pc++"     :full-name="fullName(Signal.PC_INC)"    :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.PC_DEC"    label="pc--"     :full-name="fullName(Signal.PC_DEC)"    :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.ZERO_SKIP" label="=0:pc++"  :full-name="fullName(Signal.ZERO_SKIP)" :active-signal="activeSignal" />
@@ -157,10 +158,10 @@ function fullName(sig: Signal): string {
             </div>
           </div>
 
-          <!-- Operationen: MC / Decode / Steuerung -->
-          <div class="border-t border-gray-700 pt-1.5">
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Steuerung</div>
-            <div class="flex flex-wrap gap-1">
+          <!-- Steuerung (MC / Decode / Status) -->
+          <div class="border-t border-gray-700 pt-1">
+            <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">Steuerung</div>
+            <div class="flex flex-wrap gap-0.5">
               <BusSignalChip :signal="Signal.INS_MC"    label="ins→mc"   :full-name="fullName(Signal.INS_MC)"    :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.MC_ZERO"   label="mc:=0"    :full-name="fullName(Signal.MC_ZERO)"   :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.ZERO_TEST" label="=0?"      :full-name="fullName(Signal.ZERO_TEST)" :active-signal="activeSignal" />
@@ -170,9 +171,9 @@ function fullName(sig: Signal): string {
           </div>
 
           <!-- Nächstes Signal (Statusanzeige, kein Chip) -->
-          <div class="mt-auto pt-1.5 border-t border-gray-700">
-            <div class="text-[10px] text-gray-500 mb-0.5">Nächstes Signal:</div>
-            <div class="text-yellow-400 text-xs font-bold">
+          <div class="mt-auto pt-1 border-t border-gray-700">
+            <div class="text-[9px] text-gray-500">Nächstes Signal:</div>
+            <div class="text-yellow-400 text-[11px] font-bold truncate">
               {{ s.microcode[s.mc] !== undefined
                 ? `[${s.mc}] ${fullName((s.microcode[s.mc] ?? 0) as Signal)}`
                 : '—' }}
@@ -182,48 +183,48 @@ function fullName(sig: Signal): string {
       </div>
 
       <!-- ALU ───────────────────────────────────────────────────────────── -->
-      <div class="flex flex-col rounded border-2 transition-all min-h-0"
+      <div class="flex flex-col rounded border-2 transition-colors min-h-0"
         :class="activeSignal === Signal.PLUS || activeSignal === Signal.MINUS || activeSignal === Signal.MUL
           ? 'border-yellow-500' : 'border-gray-600'"
       >
-        <div class="bg-gray-700 text-center py-1 text-xs font-bold tracking-widest rounded-t text-gray-300">
+        <div class="bg-gray-700 text-center py-0.5 text-[11px] font-bold tracking-widest rounded-t text-gray-300">
           ALU
         </div>
-        <div class="flex-1 p-2 flex flex-col gap-2 overflow-auto">
+        <div class="flex-1 p-1.5 flex flex-col gap-1.5 overflow-auto">
 
-          <!-- ACC-Wert -->
-          <div class="flex flex-col items-center gap-1 pb-1">
-            <span class="text-gray-400 text-xs">ACC</span>
+          <!-- ACC-Wert kompakt -->
+          <div class="flex flex-col items-center gap-0 pb-0.5">
+            <span class="text-gray-400 text-[10px]">ACC</span>
             <span
-              class="text-2xl font-bold transition-colors"
+              class="text-lg font-bold transition-colors truncate w-full text-center"
               :class="activeSignal === Signal.PLUS || activeSignal === Signal.MINUS || activeSignal === Signal.MUL || activeSignal === Signal.ACC_ZERO
                 ? 'text-yellow-300' : 'text-white'"
             >
               {{ formatWord(s.acc, store.wordFormat) }}
             </span>
-            <span class="text-gray-500 text-xs">{{ formatHex(s.acc) }}</span>
-            <div v-if="s.halted" class="mt-1 text-red-400 text-xs font-bold animate-pulse">
+            <span class="text-gray-500 text-[10px] truncate w-full text-center">{{ formatHex(s.acc) }}</span>
+            <div v-if="s.halted" class="mt-0.5 text-red-400 text-[10px] font-bold animate-pulse">
               ■ HLT
             </div>
           </div>
 
-          <!-- Arithmetik (Tore am ALU-Eingang) -->
-          <div class="border-t border-gray-700 pt-1.5">
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Arithmetik</div>
-            <div class="flex flex-wrap gap-1">
-              <BusSignalChip :signal="Signal.PLUS"  label="+"      :full-name="fullName(Signal.PLUS)"  :active-signal="activeSignal" />
-              <BusSignalChip :signal="Signal.MINUS" label="−"      :full-name="fullName(Signal.MINUS)" :active-signal="activeSignal" />
-              <BusSignalChip :signal="Signal.MUL"   label="×"      :full-name="fullName(Signal.MUL)"   :active-signal="activeSignal" />
+          <!-- Arithmetik -->
+          <div class="border-t border-gray-700 pt-1">
+            <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">Arithmetik</div>
+            <div class="flex flex-wrap gap-0.5">
+              <BusSignalChip :signal="Signal.PLUS"  label="+"  :full-name="fullName(Signal.PLUS)"  :active-signal="activeSignal" />
+              <BusSignalChip :signal="Signal.MINUS" label="−"  :full-name="fullName(Signal.MINUS)" :active-signal="activeSignal" />
+              <BusSignalChip :signal="Signal.MUL"   label="×"  :full-name="fullName(Signal.MUL)"   :active-signal="activeSignal" />
             </div>
           </div>
 
           <!-- Bitweise (Advanced) -->
           <div
             v-if="s.activeFeatures.has('F4_BITWISE')"
-            class="border-t border-gray-700 pt-1.5"
+            class="border-t border-gray-700 pt-1"
           >
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Bitweise</div>
-            <div class="flex flex-wrap gap-1">
+            <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">Bitweise</div>
+            <div class="flex flex-wrap gap-0.5">
               <BusSignalChip :signal="Signal.AND" label="AND" :full-name="fullName(Signal.AND)" :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.OR"  label="OR"  :full-name="fullName(Signal.OR)"  :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.NOT" label="NOT" :full-name="fullName(Signal.NOT)" :active-signal="activeSignal" />
@@ -233,9 +234,9 @@ function fullName(sig: Signal): string {
           </div>
 
           <!-- ACC-Operationen -->
-          <div class="border-t border-gray-700 pt-1.5">
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">ACC-Operationen</div>
-            <div class="flex flex-wrap gap-1">
+          <div class="border-t border-gray-700 pt-1">
+            <div class="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">ACC-Operationen</div>
+            <div class="flex flex-wrap gap-0.5">
               <BusSignalChip :signal="Signal.ACC_ZERO" label="acc:=0" :full-name="fullName(Signal.ACC_ZERO)" :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.ACC_INC"  label="acc++"  :full-name="fullName(Signal.ACC_INC)"  :active-signal="activeSignal" />
               <BusSignalChip :signal="Signal.ACC_DEC"  label="acc--"  :full-name="fullName(Signal.ACC_DEC)"  :active-signal="activeSignal" />
@@ -246,33 +247,34 @@ function fullName(sig: Signal): string {
 
     </div>
 
-    <!-- ─── Tore zur DB (zwischen 3-Spalten-Block und DB) ────────────────── -->
-    <div class="grid grid-cols-3 gap-3 items-start">
-      <!-- unter MEMORY: ram↔db -->
-      <div class="flex justify-center gap-1.5">
-        <BusSignalChip :signal="Signal.RAM_DB" label="↓ ram→db" :full-name="fullName(Signal.RAM_DB)" :active-signal="activeSignal" />
-        <BusSignalChip :signal="Signal.DB_RAM" label="↑ db→ram" :full-name="fullName(Signal.DB_RAM)" :active-signal="activeSignal" />
-      </div>
-      <!-- unter CU: db→ins -->
-      <div class="flex justify-center">
-        <BusSignalChip :signal="Signal.DB_INS" label="↑ db→ins" :full-name="fullName(Signal.DB_INS)" :active-signal="activeSignal" />
-      </div>
-      <!-- unter ALU: acc↔db -->
-      <div class="flex justify-center gap-1.5">
-        <BusSignalChip :signal="Signal.ACC_DB" label="↓ acc→db" :full-name="fullName(Signal.ACC_DB)" :active-signal="activeSignal" />
-        <BusSignalChip :signal="Signal.DB_ACC" label="↑ db→acc" :full-name="fullName(Signal.DB_ACC)" :active-signal="activeSignal" />
-      </div>
-    </div>
-
-    <!-- ─── Datenbus-Leiste (unten) ──────────────────────────────────────── -->
+    <!-- ─── Datenbus-Balken (Tore SITZEN AUF dem DB) ─────────────────────── -->
+    <!-- Chip-Reihe darüber in 3 Spalten ausgerichtet auf MEMORY / CU / ALU,
+         darunter DB-Beschriftung + Wert. -->
     <div
-      class="flex items-center justify-center gap-2 rounded px-3 py-1 text-sm transition-all"
-      :class="dbActive ? 'bg-green-800 text-green-200' : 'bg-gray-800 text-gray-500'"
+      class="rounded transition-colors shrink-0"
+      :class="dbActive ? 'bg-green-900/70 ring-1 ring-green-500' : 'bg-gray-800'"
     >
-      <span class="text-green-400">DB</span>
-      <span class="text-xs">↔</span>
-      <span class="text-white font-bold">{{ formatWord(db, store.wordFormat) }}</span>
-      <span class="text-xs text-gray-400">({{ formatDecimal(db) }} / {{ formatHex(db) }})</span>
+      <div class="grid grid-cols-3 gap-2 px-2 pt-1.5 pb-0.5">
+        <div class="flex flex-wrap justify-center gap-1">
+          <BusSignalChip :signal="Signal.RAM_DB" label="ram→db" :full-name="fullName(Signal.RAM_DB)" :active-signal="activeSignal" />
+          <BusSignalChip :signal="Signal.DB_RAM" label="db→ram" :full-name="fullName(Signal.DB_RAM)" :active-signal="activeSignal" />
+        </div>
+        <div class="flex flex-wrap justify-center gap-1">
+          <BusSignalChip :signal="Signal.DB_INS" label="db→ins" :full-name="fullName(Signal.DB_INS)" :active-signal="activeSignal" />
+        </div>
+        <div class="flex flex-wrap justify-center gap-1">
+          <BusSignalChip :signal="Signal.ACC_DB" label="acc→db" :full-name="fullName(Signal.ACC_DB)" :active-signal="activeSignal" />
+          <BusSignalChip :signal="Signal.DB_ACC" label="db→acc" :full-name="fullName(Signal.DB_ACC)" :active-signal="activeSignal" />
+        </div>
+      </div>
+      <div class="flex items-center justify-center gap-2 px-3 pb-1 pt-0.5"
+        :class="dbActive ? 'text-green-100' : 'text-gray-400'"
+      >
+        <span class="text-green-400 text-xs font-bold">DATENBUS</span>
+        <span class="text-xs">↔</span>
+        <span class="text-white font-bold">{{ formatWord(db, store.wordFormat) }}</span>
+        <span class="text-[10px] text-gray-500">({{ formatDecimal(db) }} / {{ formatHex(db) }})</span>
+      </div>
     </div>
 
   </div>

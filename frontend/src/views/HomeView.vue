@@ -164,6 +164,14 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
 <template>
   <div class="flex flex-col h-screen bg-gray-900 text-gray-100 overflow-hidden">
 
+    <!-- ═══ MIN-WIDTH-HINWEIS (nur unter 1280 px sichtbar) ═══ -->
+    <div
+      class="block xl:hidden bg-yellow-900/90 text-yellow-100 text-xs text-center px-3 py-1 shrink-0 border-b border-yellow-700"
+    >
+      ⚠ Bildschirm zu schmal — Johny 3 ist für mindestens 1280 px Breite gedacht.
+      Unter 1024 px kann das Layout unleserlich werden.
+    </div>
+
     <!-- ═══ TOOLBAR ═══ -->
     <Toolbar
       @file-new="handleNew"
