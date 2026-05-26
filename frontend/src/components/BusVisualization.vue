@@ -94,6 +94,41 @@ const ramFlashType = computed(() => {
   return null
 })
 
+// --- Pfeil-Farben (Feature C) ---
+
+const hov = computed(() => store.hoveredSignal)
+
+function arrowColor(
+  activeSignals: Signal[],
+  hoverSignals: Signal[],
+  activeColor: string,
+  hoverColor = 'text-yellow-400/50',
+): string {
+  if (flash.value !== null && activeSignals.includes(flash.value)) return activeColor
+  if (hov.value !== null && hoverSignals.includes(hov.value)) return hoverColor
+  return 'text-gray-700'
+}
+
+// Top-Connector CU → AB: pc→ab und ins→ab fließen aufwärts
+const arrowCuToAb = computed(() =>
+  arrowColor([Signal.PC_AB, Signal.INS_AB], [Signal.PC_AB, Signal.INS_AB], 'text-yellow-400'))
+
+// Bottom-Connector MEMORY ↕ DB
+const arrowRamToDb = computed(() =>
+  arrowColor([Signal.RAM_DB], [Signal.RAM_DB], 'text-yellow-400'))
+const arrowDbToRam = computed(() =>
+  arrowColor([Signal.DB_RAM], [Signal.DB_RAM], 'text-green-400', 'text-green-400/50'))
+
+// Bottom-Connector CU: db→ins fließt aufwärts (DB → IR)
+const arrowDbToIr = computed(() =>
+  arrowColor([Signal.DB_INS], [Signal.DB_INS], 'text-green-400', 'text-green-400/50'))
+
+// Bottom-Connector ALU ↕ DB
+const arrowAccToDb = computed(() =>
+  arrowColor([Signal.ACC_DB], [Signal.ACC_DB], 'text-yellow-400'))
+const arrowDbToAcc = computed(() =>
+  arrowColor([Signal.DB_ACC], [Signal.DB_ACC], 'text-green-400', 'text-green-400/50'))
+
 /** Lesbare Signalnamen für den Tooltip ("Signal 13: plus"). */
 const SIGNAL_NAMES: Record<number, string> = {
   0: 'nop', 1: 'db→ram', 2: 'ram→db', 3: 'db→ins', 4: 'ins→ab',
@@ -157,6 +192,19 @@ function fullName(sig: Signal): string {
         </div>
         <div></div>
       </div>
+    </div>
+
+    <!-- ─── Pfeil-Connector AB → Grid ────────────────────────────────────── -->
+    <div class="grid grid-cols-3 gap-2 shrink-0 h-3.5">
+      <div></div>
+      <!-- CU: PC/IR → AB aufwärts -->
+      <div class="flex justify-center items-center" :class="arrowCuToAb" title="pc→ab / ins→ab">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" class="transition-colors duration-200">
+          <line x1="4" y1="13" x2="4" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <polyline points="1,7 4,1 7,7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div></div>
     </div>
 
     <!-- ─── Drei Hauptspalten ─────────────────────────────────────────────── -->
@@ -328,6 +376,47 @@ function fullName(sig: Signal): string {
         </div>
       </div>
 
+    </div>
+
+    <!-- ─── Pfeil-Connector Grid → DB ────────────────────────────────────── -->
+    <div class="grid grid-cols-3 gap-2 shrink-0 h-3.5">
+      <!-- MEMORY: ↓ ram→db, ↑ db→ram -->
+      <div class="flex justify-center items-center gap-2">
+        <span :class="arrowRamToDb" class="transition-colors duration-200" title="ram→db">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <line x1="4" y1="1" x2="4" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <polyline points="1,7 4,13 7,7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </span>
+        <span :class="arrowDbToRam" class="transition-colors duration-200" title="db→ram">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <line x1="4" y1="13" x2="4" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <polyline points="1,7 4,1 7,7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </span>
+      </div>
+      <!-- CU: ↑ db→ins (DB → IR aufwärts) -->
+      <div class="flex justify-center items-center" :class="arrowDbToIr" title="db→ins">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" class="transition-colors duration-200">
+          <line x1="4" y1="13" x2="4" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <polyline points="1,7 4,1 7,7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <!-- ALU: ↓ acc→db, ↑ db→acc -->
+      <div class="flex justify-center items-center gap-2">
+        <span :class="arrowAccToDb" class="transition-colors duration-200" title="acc→db">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <line x1="4" y1="1" x2="4" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <polyline points="1,7 4,13 7,7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </span>
+        <span :class="arrowDbToAcc" class="transition-colors duration-200" title="db→acc">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <line x1="4" y1="13" x2="4" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <polyline points="1,7 4,1 7,7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </span>
+      </div>
     </div>
 
     <!-- ─── Datenbus-Balken ───────────────────────────────────────────────── -->
