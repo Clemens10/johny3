@@ -31,6 +31,69 @@ const dbActive = computed(() =>
 const ab = computed(() => s.value.addressBus)
 const db = computed(() => s.value.dataBus)
 
+// --- Flash-Highlights (Feature B) ---
+
+/** Das zuletzt ausgeführte Signal (automatisch nach 400 ms gelöscht). */
+const flash = computed(() => store.lastExecutedSignal)
+
+/** Gibt 'source', 'target' oder null zurück — für CSS-Klassen. */
+function flashClass(type: 'source' | 'target' | null): string {
+  if (type === 'source') return 'flash-source'
+  if (type === 'target') return 'flash-target'
+  return ''
+}
+
+const pcFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.PC_AB) return 'source'
+  if (f === Signal.PC_INC || f === Signal.PC_DEC || f === Signal.ZERO_SKIP ||
+      f === Signal.GT_SKIP || f === Signal.INS_PC) return 'target'
+  return null
+})
+
+const irFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.INS_AB || f === Signal.INS_MC || f === Signal.INS_PC) return 'source'
+  if (f === Signal.DB_INS) return 'target'
+  return null
+})
+
+const mcFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.MC_ZERO || f === Signal.INS_MC) return 'target'
+  return null
+})
+
+const accFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.ACC_DB) return 'source'
+  if (f === Signal.DB_ACC || f === Signal.PLUS || f === Signal.MINUS || f === Signal.MUL ||
+      f === Signal.ACC_ZERO || f === Signal.ACC_INC || f === Signal.ACC_DEC ||
+      f === Signal.AND || f === Signal.OR || f === Signal.NOT ||
+      f === Signal.SHL || f === Signal.SHR) return 'target'
+  return null
+})
+
+const abFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.PC_AB || f === Signal.INS_AB) return 'target'
+  return null
+})
+
+const dbFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.DB_INS || f === Signal.DB_ACC || f === Signal.DB_RAM) return 'source'
+  if (f === Signal.RAM_DB || f === Signal.ACC_DB) return 'target'
+  return null
+})
+
+const ramFlashType = computed(() => {
+  const f = flash.value
+  if (f === Signal.RAM_DB) return 'source'
+  if (f === Signal.DB_RAM) return 'target'
+  return null
+})
+
 /** Lesbare Signalnamen für den Tooltip ("Signal 13: plus"). */
 const SIGNAL_NAMES: Record<number, string> = {
   0: 'nop', 1: 'db→ram', 2: 'ram→db', 3: 'db→ins', 4: 'ins→ab',
@@ -64,12 +127,13 @@ function fullName(sig: Signal): string {
       </span>
     </div>
 
-    <!-- ─── Adressbus-Balken (Tore SITZEN AUF dem AB selbst) ─────────────── -->
-    <!-- Zweizeilig: oben AB-Beschriftung + Wert, darunter Chip-Reihe in
-         3 Spalten ausgerichtet auf MEMORY / CU / ALU. -->
+    <!-- ─── Adressbus-Balken ───────────────────────────────────────────── -->
     <div
       class="rounded transition-colors shrink-0"
-      :class="abActive ? 'bg-blue-900/70 ring-1 ring-blue-500' : 'bg-gray-800'"
+      :class="[
+        abActive ? 'bg-blue-900/70 ring-1 ring-blue-500' : 'bg-gray-800',
+        flashClass(abFlashType),
+      ]"
     >
       <div class="flex items-center justify-center gap-2 px-3 pt-1 pb-0.5"
         :class="abActive ? 'text-blue-100' : 'text-gray-400'"
@@ -95,7 +159,7 @@ function fullName(sig: Signal): string {
       </div>
     </div>
 
-    <!-- ─── Drei Hauptspalten (ohne Tor-Chips außerhalb) ─────────────────── -->
+    <!-- ─── Drei Hauptspalten ─────────────────────────────────────────────── -->
     <div class="grid grid-cols-3 gap-2 flex-1 min-h-0">
 
       <!-- MEMORY ────────────────────────────────────────────────────────── -->
@@ -107,7 +171,10 @@ function fullName(sig: Signal): string {
         </div>
         <div class="flex-1 flex flex-col items-center justify-center gap-1 p-2 overflow-hidden">
           <div class="text-gray-400 text-[10px]">RAM [ {{ String(ab).padStart(3, '0') }} ]</div>
-          <div class="text-white text-base font-bold truncate w-full text-center">
+          <div
+            class="text-white text-base font-bold truncate w-full text-center rounded px-1"
+            :class="flashClass(ramFlashType)"
+          >
             {{ formatWord(s.ram[ab] ?? 0, store.wordFormat) }}
           </div>
           <div class="text-gray-500 text-[10px] truncate w-full text-center">{{ formatHex(s.ram[ab] ?? 0) }}</div>
@@ -125,24 +192,37 @@ function fullName(sig: Signal): string {
           <div class="flex flex-col gap-0">
             <div class="flex justify-between items-baseline gap-2">
               <span class="text-gray-400 text-[10px]">PC</span>
-              <span class="font-bold transition-colors text-sm truncate"
-                :class="activeSignal === Signal.PC_INC || activeSignal === Signal.PC_DEC || activeSignal === Signal.INS_PC
-                  ? 'text-blue-300' : 'text-white'"
+              <span
+                class="font-bold text-sm truncate rounded px-0.5"
+                :class="[
+                  flashClass(pcFlashType),
+                  !pcFlashType && (activeSignal === Signal.PC_INC || activeSignal === Signal.PC_DEC || activeSignal === Signal.INS_PC)
+                    ? 'text-blue-300' : 'text-white'
+                ]"
               >
                 {{ String(s.pc).padStart(3, '0') }}
               </span>
             </div>
             <div class="flex justify-between items-baseline gap-2">
               <span class="text-gray-400 text-[10px]">IR</span>
-              <span class="font-bold transition-colors text-sm truncate"
-                :class="activeSignal === Signal.DB_INS ? 'text-yellow-300' : 'text-white'"
+              <span
+                class="font-bold text-sm truncate rounded px-0.5"
+                :class="[
+                  flashClass(irFlashType),
+                  !irFlashType && activeSignal === Signal.DB_INS ? 'text-yellow-300' : 'text-white'
+                ]"
               >
                 {{ formatWord(s.ir, store.wordFormat) }}
               </span>
             </div>
             <div class="flex justify-between items-baseline gap-2">
               <span class="text-gray-400 text-[10px]">MC</span>
-              <span class="font-bold text-purple-300 text-sm truncate">{{ String(s.mc).padStart(3, '0') }}</span>
+              <span
+                class="font-bold text-sm truncate rounded px-0.5"
+                :class="[flashClass(mcFlashType), 'text-purple-300']"
+              >
+                {{ String(s.mc).padStart(3, '0') }}
+              </span>
             </div>
           </div>
 
@@ -196,9 +276,12 @@ function fullName(sig: Signal): string {
           <div class="flex flex-col items-center gap-0 pb-0.5">
             <span class="text-gray-400 text-[10px]">ACC</span>
             <span
-              class="text-lg font-bold transition-colors truncate w-full text-center"
-              :class="activeSignal === Signal.PLUS || activeSignal === Signal.MINUS || activeSignal === Signal.MUL || activeSignal === Signal.ACC_ZERO
-                ? 'text-yellow-300' : 'text-white'"
+              class="text-lg font-bold truncate w-full text-center rounded px-1"
+              :class="[
+                flashClass(accFlashType),
+                !accFlashType && (activeSignal === Signal.PLUS || activeSignal === Signal.MINUS || activeSignal === Signal.MUL || activeSignal === Signal.ACC_ZERO)
+                  ? 'text-yellow-300' : 'text-white'
+              ]"
             >
               {{ formatWord(s.acc, store.wordFormat) }}
             </span>
@@ -247,12 +330,13 @@ function fullName(sig: Signal): string {
 
     </div>
 
-    <!-- ─── Datenbus-Balken (Tore SITZEN AUF dem DB) ─────────────────────── -->
-    <!-- Chip-Reihe darüber in 3 Spalten ausgerichtet auf MEMORY / CU / ALU,
-         darunter DB-Beschriftung + Wert. -->
+    <!-- ─── Datenbus-Balken ───────────────────────────────────────────────── -->
     <div
       class="rounded transition-colors shrink-0"
-      :class="dbActive ? 'bg-green-900/70 ring-1 ring-green-500' : 'bg-gray-800'"
+      :class="[
+        dbActive ? 'bg-green-900/70 ring-1 ring-green-500' : 'bg-gray-800',
+        flashClass(dbFlashType),
+      ]"
     >
       <div class="grid grid-cols-3 gap-2 px-2 pt-1.5 pb-0.5">
         <div class="flex flex-wrap justify-center gap-1">
@@ -279,3 +363,20 @@ function fullName(sig: Signal): string {
 
   </div>
 </template>
+
+<style scoped>
+@keyframes flash-source {
+  0%   { background-color: rgba(234, 179, 8, 0.45); box-shadow: 0 0 6px rgba(234, 179, 8, 0.3); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+@keyframes flash-target {
+  0%   { background-color: rgba(34, 197, 94, 0.45); box-shadow: 0 0 6px rgba(34, 197, 94, 0.3); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+.flash-source {
+  animation: flash-source 400ms ease-out forwards;
+}
+.flash-target {
+  animation: flash-target 400ms ease-out forwards;
+}
+</style>
