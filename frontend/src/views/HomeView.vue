@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { useSimulatorStore } from '@/stores/simulator'
 import { assemble } from '@/simulator/assembler'
@@ -157,6 +157,78 @@ function openFileContent(format: FileFormat, text: string, filename: string) {
   }
 }
 
+// ─── Draggable Splitter ───────────────────────────────────────────────────────
+const SPLIT_KEY = 'johnny3.layout.splitRatio'
+const DEFAULT_RATIO = 0.6
+const MIN_TOP_PX = 250
+const MIN_BOTTOM_PX = 120
+
+const splitContainerRef = ref<HTMLElement>()
+const containerHeight = ref(0)
+const splitRatio = ref(parseFloat(localStorage.getItem(SPLIT_KEY) ?? String(DEFAULT_RATIO)))
+
+let ro: ResizeObserver | null = null
+onMounted(() => {
+  if (splitContainerRef.value) {
+    ro = new ResizeObserver(entries => {
+      containerHeight.value = entries[0].contentRect.height
+    })
+    ro.observe(splitContainerRef.value)
+  }
+})
+onUnmounted(() => ro?.disconnect())
+
+const topHeight = computed<number | undefined>(() => {
+  const h = containerHeight.value
+  if (h === 0) return undefined
+  const raw = h * splitRatio.value
+  const max = h - MIN_BOTTOM_PX - 4
+  return Math.max(MIN_TOP_PX, Math.min(raw, max))
+})
+const bottomHeight = computed<number | undefined>(() => {
+  const h = containerHeight.value
+  const top = topHeight.value
+  if (h === 0 || top === undefined) return undefined
+  return h - top - 4
+})
+
+let dragActive = false
+let dragStartY = 0
+let dragStartRatio = 0
+
+function onSplitterMousedown(e: MouseEvent) {
+  dragActive = true
+  dragStartY = e.clientY
+  dragStartRatio = splitRatio.value
+  document.addEventListener('mousemove', onDragMove)
+  document.addEventListener('mouseup', onDragEnd)
+  document.body.style.cursor = 'row-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function onDragMove(e: MouseEvent) {
+  if (!dragActive || containerHeight.value === 0) return
+  const delta = e.clientY - dragStartY
+  const newRatio = dragStartRatio + delta / containerHeight.value
+  const minR = MIN_TOP_PX / containerHeight.value
+  const maxR = (containerHeight.value - MIN_BOTTOM_PX - 4) / containerHeight.value
+  splitRatio.value = Math.max(minR, Math.min(newRatio, maxR))
+}
+
+function onDragEnd() {
+  dragActive = false
+  document.removeEventListener('mousemove', onDragMove)
+  document.removeEventListener('mouseup', onDragEnd)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  localStorage.setItem(SPLIT_KEY, String(splitRatio.value))
+}
+
+function onSplitterDblclick() {
+  splitRatio.value = DEFAULT_RATIO
+  localStorage.setItem(SPLIT_KEY, String(DEFAULT_RATIO))
+}
+
 // ─── Globale Tastaturkürzel (F5/F10/F11 + Strg+N/S/O außerhalb Monaco) ──
 useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen })
 </script>
@@ -208,63 +280,117 @@ useKeyboardShortcuts({ onNew: handleNew, onSave: handleSave, onOpen: handleOpen 
       </div>
     </div>
 
-    <!-- ═══ MITTLERER BEREICH: Editor | Bus | (Trace) ═══ -->
-    <!-- Flex-Anteil 2 — RAM/Mikrocode-Tabelle unten ist das Arbeitswerkzeug
-         und bekommt den größeren Anteil 3. -->
-    <div class="flex flex-[2_2_0] min-h-0 border-b border-gray-700">
+    <!-- ═══ SPLIT-CONTAINER: enthält obere und untere Panel mit Splitter ═══ -->
+    <div ref="splitContainerRef" class="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      <!-- Linke Hälfte: Assembler-Editor (Monaco) -->
-      <div class="flex-1 flex flex-col border-r border-gray-700 min-w-0">
-        <EditorPane
-          ref="editorRef"
-          class="flex-1 min-h-0"
-          @save="handleSave"
-          @new="handleNew"
-          @open="handleOpen"
-          @change="handleEditorChange"
-        />
+      <!-- ═══ OBERER BEREICH: Editor | Bus | (Trace) ═══ -->
+      <div
+        class="flex min-h-0 overflow-hidden"
+        :style="topHeight !== undefined
+          ? { height: topHeight + 'px', flex: 'none' }
+          : { flex: '2 2 0' }"
+      >
+
+        <!-- Linke Hälfte: Assembler-Editor (Monaco) -->
+        <div class="flex-1 flex flex-col border-r border-gray-700 min-w-0">
+          <EditorPane
+            ref="editorRef"
+            class="flex-1 min-h-0"
+            @save="handleSave"
+            @new="handleNew"
+            @open="handleOpen"
+            @change="handleEditorChange"
+          />
+        </div>
+
+        <!-- Mitte: Bus-Visualisierung -->
+        <div class="flex-1 min-w-0">
+          <BusVisualization />
+        </div>
+
+        <!-- Rechte Seitenleiste: Mikrocode-Trace (einklappbar) -->
+        <MicrocodeTracePanel />
+
       </div>
 
-      <!-- Mitte: Bus-Visualisierung -->
-      <div class="flex-1 min-w-0">
-        <BusVisualization />
+      <!-- ═══ SPLITTER ═══ -->
+      <div
+        class="splitter shrink-0"
+        title="Ziehen zum Anpassen · Doppelklick: Standard"
+        @mousedown.prevent="onSplitterMousedown"
+        @dblclick="onSplitterDblclick"
+      >
+        <div class="splitter-grip" />
       </div>
 
-      <!-- Rechte Seitenleiste: Mikrocode-Trace (einklappbar) -->
-      <MicrocodeTracePanel />
+      <!-- ═══ UNTERER BEREICH: RAM / Mikrocode (Tabs) — Hauptansicht ═══ -->
+      <div
+        class="flex flex-col min-h-0 overflow-hidden"
+        :style="bottomHeight !== undefined
+          ? { height: bottomHeight + 'px', flex: 'none' }
+          : { flex: '3 3 0' }"
+      >
 
-    </div>
+        <div class="flex text-xs border-b border-gray-700 bg-gray-800 shrink-0 select-none">
+          <button
+            class="px-4 py-1.5 border-b-2 transition-colors"
+            :class="bottomTab === 'ram'
+              ? 'border-blue-400 text-blue-300'
+              : 'border-transparent text-gray-500 hover:text-gray-300'"
+            @click="bottomTab = 'ram'"
+          >
+            RAM-Speicher
+          </button>
+          <button
+            class="px-4 py-1.5 border-b-2 transition-colors"
+            :class="bottomTab === 'microcode'
+              ? 'border-blue-400 text-blue-300'
+              : 'border-transparent text-gray-500 hover:text-gray-300'"
+            @click="bottomTab = 'microcode'"
+          >
+            Mikrocode
+          </button>
+        </div>
 
-    <!-- ═══ UNTERER BEREICH: RAM / Mikrocode (Tabs) — Hauptansicht ═══ -->
-    <div class="flex-[3_3_0] flex flex-col min-h-0">
+        <div class="flex-1 overflow-hidden">
+          <RamTable v-if="bottomTab === 'ram'" />
+          <MicrocodeTable v-else />
+        </div>
 
-      <div class="flex text-xs border-b border-gray-700 bg-gray-800 shrink-0 select-none">
-        <button
-          class="px-4 py-1.5 border-b-2 transition-colors"
-          :class="bottomTab === 'ram'
-            ? 'border-blue-400 text-blue-300'
-            : 'border-transparent text-gray-500 hover:text-gray-300'"
-          @click="bottomTab = 'ram'"
-        >
-          RAM-Speicher
-        </button>
-        <button
-          class="px-4 py-1.5 border-b-2 transition-colors"
-          :class="bottomTab === 'microcode'
-            ? 'border-blue-400 text-blue-300'
-            : 'border-transparent text-gray-500 hover:text-gray-300'"
-          @click="bottomTab = 'microcode'"
-        >
-          Mikrocode
-        </button>
-      </div>
-
-      <div class="flex-1 overflow-hidden">
-        <RamTable v-if="bottomTab === 'ram'" />
-        <MicrocodeTable v-else />
       </div>
 
     </div>
 
   </div>
 </template>
+
+<style scoped>
+@reference "../assets/main.css";
+
+.splitter {
+  height: 4px;
+  background: theme('colors.gray.700');
+  cursor: row-resize;
+  position: relative;
+  transition: background 120ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splitter:hover {
+  background: theme('colors.blue.700');
+}
+
+.splitter-grip {
+  width: 32px;
+  height: 2px;
+  border-radius: 1px;
+  background: theme('colors.gray.500');
+  transition: background 120ms ease;
+}
+
+.splitter:hover .splitter-grip {
+  background: theme('colors.blue.300');
+}
+</style>
