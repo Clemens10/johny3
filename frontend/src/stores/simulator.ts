@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { type SimulatorState, type Signal, AdvancedFeature, RAM_SIZE, MICROCODE_SIZE } from '@/simulator/types'
 import { createInitialState, microstep as doMicrostep } from '@/simulator/simulator'
 import { signalName, type WordFormat } from '@/simulator/format'
+import { applySignal } from '@/simulator/signals'
 import {
   appendSignal as recAppend,
   undoLastSignal as recUndo,
@@ -65,7 +66,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
    */
   const wordFormat = ref<WordFormat>('dec')
 
-  // --- Recorder-State (Schritt 18) ---
+  // --- Recorder-State ---
   /** Aufnahme-Modus aktiv? Toolbar-Toggle + Banner-Sichtbarkeit. */
   const isRecording = ref(false)
   /** Mnemonic für den neuen Befehl (z. B. "MYCMD"). */
@@ -77,6 +78,17 @@ export const useSimulatorStore = defineStore('simulator', () => {
   const recordingEntry = ref(110)
   /** Bisher aufgenommene Signale (chronologisch). */
   const recordingSignals = ref<Signal[]>([])
+  /** Snapshot des Simulator-States VOR Recorder-Start — zum Zurücksetzen. */
+  const recordingStateSnapshot = ref<SimulatorState | null>(null)
+  /** State-Historie für Undo im Recorder (State vor jedem Signal). */
+  const recordingStateHistory = ref<SimulatorState[]>([])
+
+  // --- Highlight-State (für animierte Signal-Hervorhebungen) ---
+  /** Das zuletzt ausgeführte Signal (wird nach ~400 ms gelöscht). */
+  const lastExecutedSignal = ref<Signal | null>(null)
+  /** Aktuell gehovtertes Signal-Chip (für Pfeil-Vorschau). */
+  const hoveredSignal = ref<Signal | null>(null)
+  let highlightTimer: ReturnType<typeof setTimeout> | null = null
 
   // --- Computed ---
   const isHalted = computed(() => state.value.halted)
@@ -93,7 +105,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     return 'custom'
   })
 
-  // --- Private Hilfsfunktion ---
+  // --- Private Hilfsfunktionen ---
   function clearTimer() {
     if (runTimer !== null) {
       clearInterval(runTimer)
@@ -104,6 +116,23 @@ export const useSimulatorStore = defineStore('simulator', () => {
   function delayMs(): number {
     // speed 1 = 1000 ms, speed 10 = 50 ms (Logarithmus-ähnliche Verteilung)
     return Math.round(1000 / speed.value)
+  }
+
+  /**
+   * Setzt lastExecutedSignal kurz auf null (damit Vue die CSS-Animation neu
+   * triggert, auch wenn dasselbe Signal wie zuvor ausgeführt wird) und dann
+   * auf das neue Signal. Nach 400 ms wird es wieder gelöscht.
+   */
+  function triggerSignalHighlight(signal: Signal) {
+    if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null }
+    lastExecutedSignal.value = null
+    nextTick(() => {
+      lastExecutedSignal.value = signal
+      highlightTimer = setTimeout(() => {
+        lastExecutedSignal.value = null
+        highlightTimer = null
+      }, 400)
+    })
   }
 
   // --- Aktionen ---
@@ -118,6 +147,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     const signal = (state.value.microcode[state.value.mc] ?? 0) as Signal
     const next = doMicrostep(state.value)
     state.value = next
+    triggerSignalHighlight(signal)
     trace.value.push({
       id: traceCounter++,
       signal,
@@ -261,35 +291,58 @@ export const useSimulatorStore = defineStore('simulator', () => {
     state.value = { ...state.value, microcode: mc as Signal[] }
   }
 
-  // --- Recorder-Aktionen (Schritt 18) ---
+  // --- Recorder-Aktionen ---
 
-  /** Aktiviert den Aufnahme-Modus und leert den Buffer. */
+  /** Aktiviert den Aufnahme-Modus, leert den Buffer und sichert den State. */
   function startRecording() {
     isRecording.value = true
     recordingSignals.value = []
+    recordingStateSnapshot.value = state.value
+    recordingStateHistory.value = []
   }
 
-  /** Bricht die Aufnahme ohne Übernahme ab. */
+  /** Bricht die Aufnahme ohne Übernahme ab und stellt den State wieder her. */
   function cancelRecording() {
+    if (recordingStateSnapshot.value) {
+      state.value = recordingStateSnapshot.value
+    }
     isRecording.value = false
     recordingSignals.value = []
+    recordingStateSnapshot.value = null
+    recordingStateHistory.value = []
   }
 
-  /** Hängt ein Signal an den Aufnahme-Buffer. No-op außerhalb Recorder-Modus. */
+  /**
+   * Hängt ein Signal an den Aufnahme-Buffer UND führt es sofort aus,
+   * damit Register und Bus-Visualisierung live reagieren.
+   * No-op außerhalb Recorder-Modus.
+   */
   function recordSignal(signal: Signal) {
     if (!isRecording.value) return
+    recordingStateHistory.value = [...recordingStateHistory.value, state.value]
+    state.value = applySignal(state.value, signal)
     recordingSignals.value = recAppend(recordingSignals.value, signal)
+    triggerSignalHighlight(signal)
   }
 
-  /** Entfernt das zuletzt aufgenommene Signal (Strg+Z im Recorder). */
+  /**
+   * Entfernt das zuletzt aufgenommene Signal UND setzt den State auf den
+   * Stand vor diesem Signal zurück (Strg+Z im Recorder).
+   */
   function undoRecord() {
     if (!isRecording.value) return
+    if (recordingStateHistory.value.length > 0) {
+      const history = [...recordingStateHistory.value]
+      state.value = history.pop()!
+      recordingStateHistory.value = history
+    }
     recordingSignals.value = recUndo(recordingSignals.value)
   }
 
   /**
-   * Schreibt die aufgenommene Sequenz in den Mikrocode-Speicher und verlässt
-   * den Recorder-Modus. Gibt mögliche Warnungen zurück (z. B. fehlendes mc:=0
+   * Schreibt die aufgenommene Sequenz in den Mikrocode-Speicher, stellt den
+   * Register-State auf den Stand VOR der Aufnahme zurück und verlässt den
+   * Recorder-Modus. Gibt mögliche Warnungen zurück (z. B. fehlendes mc:=0
    * oder Abschneiden am Speicher-Ende).
    *
    * Mit `force=false` (Default) wird bei Warnungen NICHT gespeichert — die
@@ -299,16 +352,26 @@ export const useSimulatorStore = defineStore('simulator', () => {
   function commitRecording(force = false): string[] {
     const warnings = validateRecording(recordingSignals.value)
     if (warnings.length > 0 && !force) return warnings
+    const baseMicrocode = recordingStateSnapshot.value?.microcode ?? state.value.microcode
     const { microcode, truncated } = applyRecording(
-      state.value.microcode,
+      baseMicrocode,
       recordingEntry.value,
       recordingSignals.value,
     )
-    state.value = { ...state.value, microcode: microcode as Signal[] }
+    // State auf Snapshot zurücksetzen, aber mit dem neuen Mikrocode
+    const baseState = recordingStateSnapshot.value ?? state.value
+    state.value = { ...baseState, microcode: microcode as Signal[] }
     if (truncated) warnings.push('Sequenz wurde am Ende des Mikrocode-Speichers (Adresse 199) abgeschnitten.')
     isRecording.value = false
     recordingSignals.value = []
+    recordingStateSnapshot.value = null
+    recordingStateHistory.value = []
     return warnings
+  }
+
+  /** Setzt das aktuell gehovterte Signal (für Pfeil-Vorschau in der Bus-Vis.). */
+  function setHoveredSignal(signal: Signal | null) {
+    hoveredSignal.value = signal
   }
 
   /** Schaltet ein einzelnes Advanced-Feature ein oder aus. */
@@ -342,6 +405,9 @@ export const useSimulatorStore = defineStore('simulator', () => {
     ir,
     trace,
     wordFormat,
+    // Highlight-State
+    lastExecutedSignal,
+    hoveredSignal,
     // Recorder-State
     isRecording,
     recordingMnemonic,
@@ -364,6 +430,7 @@ export const useSimulatorStore = defineStore('simulator', () => {
     enableAllFeatures,
     disableAllFeatures,
     clearTrace,
+    setHoveredSignal,
     // Recorder-Aktionen
     startRecording,
     cancelRecording,

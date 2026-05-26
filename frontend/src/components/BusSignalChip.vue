@@ -6,12 +6,11 @@ import { isSignalAvailable } from '@/simulator/signals'
 
 /**
  * Klickbares "Tor" in der Bus-Visualisierung. Im Recorder-Modus wird der
- * Klick als aufgenommenes Signal an den Store gemeldet; sonst dient die
- * Komponente nur der Visualisierung (kein Hover-Effekt, kein Klick).
+ * Klick als aufgenommenes Signal an den Store gemeldet (und sofort ausgeführt);
+ * sonst dient die Komponente nur der Visualisierung.
  *
  * Wird `signal` durch das aktuelle Feature-Set ausgeschlossen (z. B. mul
- * im Classic-Modus), rendert die Komponente NICHTS — die Bus-Karte zeigt
- * also nur tatsächlich verfügbare Tore.
+ * im Classic-Modus), rendert die Komponente NICHTS.
  */
 const props = defineProps<{
   signal: Signal
@@ -31,6 +30,9 @@ const isActive  = computed(() => props.activeSignal === props.signal)
 function click() {
   if (store.isRecording) store.recordSignal(props.signal)
 }
+
+function onMouseEnter() { store.setHoveredSignal(props.signal) }
+function onMouseLeave() { store.setHoveredSignal(null) }
 </script>
 
 <template>
@@ -48,6 +50,8 @@ function click() {
     }"
     :title="`Signal ${signal}: ${fullName}`"
     @click="click"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
   >
     {{ label }}
   </button>
